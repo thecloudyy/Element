@@ -5,7 +5,7 @@ namespace ElementGui.Services;
 
 public static class ProtocolService
 {
-    private const string ProtocolName = "luatools";
+    private const string ProtocolName = "element";
 
     private static readonly string PendingFile = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -22,7 +22,7 @@ public static class ProtocolService
 
             using var protoKey = Registry.CurrentUser.CreateSubKey(
                 $@"Software\Classes\{ProtocolName}");
-            protoKey.SetValue("", "URL:LuaTools Protocol");
+            protoKey.SetValue("", "URL:Element Protocol");
             protoKey.SetValue("URL Protocol", "");
         }
         catch { }
@@ -44,7 +44,7 @@ public static class ProtocolService
 
         string id = uri.AbsolutePath.TrimStart('/');
 
-        // luatools://install/silent/<appid> → run the install headless (tray only + a balloon when done).
+        // element://install/silent/<appid> → run the install headless (tray only + a balloon when done).
         bool silent = false;
         if (action == "install" && id.StartsWith("silent/", StringComparison.OrdinalIgnoreCase))
         {

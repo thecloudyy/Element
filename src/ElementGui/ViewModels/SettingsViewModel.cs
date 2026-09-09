@@ -31,7 +31,7 @@ public partial class SettingsViewModel : ObservableObject
 
     // ── Startup behavior ────────────────────────────────────────────
     private const string RunKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
-    private const string RunValueName = "LuaTools";
+    private const string RunValueName = "Element";
 
     /// <summary>Launch the app on Windows sign-in (writes HKCU …\Run). Persisted via SettingsService.</summary>
     [ObservableProperty] private bool _startWithWindows;

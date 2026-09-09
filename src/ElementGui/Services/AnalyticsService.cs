@@ -44,7 +44,7 @@ public class AnalyticsService
                 Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json"),
             };
             // Umami's bot filter SILENTLY DROPS events from non-standard User-Agents (it still returns
-            // 200 but with a {"beep":"boop"} body and records nothing). A custom "LuaToolsDesktop/x"
+            // 200 but with a {"beep":"boop"} body and records nothing). A custom "ElementDesktop/x"
             // suffix tripped that filter, so we send a plain, standard Windows Chrome UA. The launch is
             // still identifiable in the dashboard via the "app_launch" event name + desktop.lua.tools host.
             req.Headers.TryAddWithoutValidation(

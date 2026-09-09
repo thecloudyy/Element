@@ -70,7 +70,7 @@ public partial class DropInstallViewModel : ObservableObject
     private InstallTally _tally;
 
     /// <summary>
-    /// Install a game by appid. Set by App to the SAME path <c>luatools://install/&lt;appid&gt;</c> takes,
+    /// Install a game by appid. Set by App to the SAME path <c>element://install/&lt;appid&gt;</c> takes,
     /// so a dropped link and the protocol trigger can't drift apart.
     /// </summary>
     public Func<long, Task>? InstallByAppId { get; set; }

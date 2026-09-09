@@ -30,7 +30,7 @@ public class HttpServerService : IHostedService
     private List<ApiSource> _apiSources = new();
     private bool _apiSourcesLoaded = false;
 
-    private static readonly string TempDir = Path.Combine(Path.GetTempPath(), "LuaTools", "downloads");
+    private static readonly string TempDir = Path.Combine(Path.GetTempPath(), "Element", "downloads");
 
     public HttpServerService(LuaInstaller installer, SteamService steam, CacheService cache,
         IServiceProvider services, ILogger<HttpServerService> logger)

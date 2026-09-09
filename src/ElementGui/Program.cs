@@ -21,10 +21,10 @@ public static class Program
         // resolve once at parse time) pick up the right language from the first frame.
         ApplyUiCulture();
 
-        // Register the luatools:// protocol handler so browser links can open the app.
+        // Register the element:// protocol handler so browser links can open the app.
         Services.ProtocolService.Register();
 
-        // Check if we were launched with a luatools:// protocol URL.
+        // Check if we were launched with an element:// protocol URL.
         string? protocolUrl = null;
         bool startMinimized = false;
         bool trayLocked = false;
@@ -32,7 +32,7 @@ public static class Program
         {
             foreach (var arg in args)
             {
-                if (arg.StartsWith("luatools://", StringComparison.OrdinalIgnoreCase))
+                if (arg.StartsWith("element://", StringComparison.OrdinalIgnoreCase))
                 {
                     protocolUrl = arg;
                 }

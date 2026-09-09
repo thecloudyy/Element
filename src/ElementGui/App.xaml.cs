@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Threading;
 using ElementGui.Models;
 using ElementGui.Services;
@@ -208,7 +208,7 @@ public partial class App : Application
                     if (!st.DllMatches)
                     {
                         var t = _host.Services.GetRequiredService<ToastService>();
-                        Dispatcher.Invoke(() => t.Show("LuaTools", "Updating plugin. Steam will restart."));
+                        Dispatcher.Invoke(() => t.Show("Element", "Updating plugin. Steam will restart."));
                     }
                     await installer.InstallAsync(progress: null);
                 }
@@ -222,7 +222,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Legacy cleanup: older builds staged downloads in ~/Downloads/LuaTools (they now stage in
+        // Legacy cleanup: older builds staged downloads in ~/Downloads/Element (they now stage in
         // %TEMP% and self-delete). Remove any leftovers from that user-visible folder, best-effort.
         // Also sweep the current %TEMP% staging folder: a crash mid-download, or an overwrite confirm
         // the user never answered, leaves a staged zip nobody will ever delete.
@@ -231,7 +231,7 @@ public partial class App : Application
             try
             {
                 string legacy = System.IO.Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "LuaTools");
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "Element");
                 if (System.IO.Directory.Exists(legacy)) System.IO.Directory.Delete(legacy, recursive: true);
             }
             catch { /* best effort, never block startup on cleanup */ }
@@ -252,7 +252,7 @@ public partial class App : Application
 
         // Point OST/BST at config/stplug-in so lua writes hot-reload. Must run AFTER the migration
         // above, which is what makes SelectedMode parse. The app no longer tells anyone to restart
-        // Steam for a lua change, so this registration is what makes that promise true — and it
+        // Steam for a lua change, so this registration is what makes that promise true � and it
         // previously only ever ran during a mode install through this app.
         _host.Services.GetRequiredService<UnlockerService>().EnsureLuaPathRegistered();
 
@@ -264,10 +264,10 @@ public partial class App : Application
 
         var window = _host.Services.GetRequiredService<MainWindow>();
 
-        // Turning off "Minimize to tray" while hidden in the tray → bring the window back.
+        // Turning off "Minimize to tray" while hidden in the tray ? bring the window back.
         settingsVm.RequestShowWindow = () => Dispatcher.Invoke(window.RestoreFromTray);
 
-        // Relaunching the app (single-instance) signals this event → surface the existing window and
+        // Relaunching the app (single-instance) signals this event ? surface the existing window and
         // check for any protocol URL a second instance wrote. AutoReset + executeOnlyOnce:false so it
         // keeps firing for every relaunch.
         if (Program.ShowWindowSignal is not null)
@@ -285,7 +285,7 @@ public partial class App : Application
                 }),
                 null, System.Threading.Timeout.Infinite, executeOnlyOnce: false);
 
-        // A --tray-locked relaunch (the loader) signals this → enable close-to-tray for the session even if
+        // A --tray-locked relaunch (the loader) signals this ? enable close-to-tray for the session even if
         // this instance was started without the flag. Idempotent; keeps firing for every relaunch.
         if (Program.EnableTrayLockSignal is not null)
             System.Threading.ThreadPool.RegisterWaitForSingleObject(
@@ -293,7 +293,7 @@ public partial class App : Application
                 (_, _) => Program.SessionTrayLock = true,
                 null, System.Threading.Timeout.Infinite, executeOnlyOnce: false);
 
-        // A --tray-locked relaunch (the loader on Steam-open) signals this → re-run the update flow so an
+        // A --tray-locked relaunch (the loader on Steam-open) signals this ? re-run the update flow so an
         // already-running app still updates when the user opens Steam. Guarded internally against overlap.
         if (Program.RecheckUpdatesSignal is not null)
             System.Threading.ThreadPool.RegisterWaitForSingleObject(
@@ -307,7 +307,7 @@ public partial class App : Application
         var toast = _host.Services.GetRequiredService<ToastService>();
         toast.Attach(window.RootSnackbar); // wire the presenter before anything can raise a toast
 
-        // Language changed → persistent toast offering an immediate relaunch.
+        // Language changed ? persistent toast offering an immediate relaunch.
         settingsVm.RequestRestartPrompt = () => Dispatcher.Invoke(() =>
             toast.ShowAction(
                 ElementGui.Resources.Strings.Lang_Changed_Title,
@@ -321,16 +321,16 @@ public partial class App : Application
 
         var manage = _host.Services.GetRequiredService<ManageViewModel>();
 
-        // Manage page "Update" → go to the Add page pre-seeded with that appid.
+        // Manage page "Update" ? go to the Add page pre-seeded with that appid.
         manage.NavigateToAdd = appId =>
             Dispatcher.Invoke(() => { window.NavigateToAdd(); download.SeedSearch(appId); });
 
-        // Manage flyout "Manage Build" → go to the Builds page with that game selected.
+        // Manage flyout "Manage Build" ? go to the Builds page with that game selected.
         var builds = _host.Services.GetRequiredService<BuildsViewModel>();
         manage.NavigateToBuilds = appId =>
             Dispatcher.Invoke(() => { window.NavigateToBuilds(); _ = builds.SelectAppAsync(appId); });
 
-        // Manage flyout "Launch options…" → modal editor over Steam's appinfo cache.
+        // Manage flyout "Launch options�" ? modal editor over Steam's appinfo cache.
         manage.OpenLaunchOptions = (appId, name) => Dispatcher.Invoke(() =>
         {
             var dialog = new LaunchOptionsDialog(
@@ -343,7 +343,7 @@ public partial class App : Application
         // OFFER to re-apply, never silently, since applying closes Steam.
         _ = CheckLaunchOptionDriftAsync();
 
-        // Home "recently added" + Add install banner "Reveal" → go to Manage and open that game's detail.
+        // Home "recently added" + Add install banner "Reveal" ? go to Manage and open that game's detail.
         Action<long> openInManage = appId =>
             Dispatcher.Invoke(() => { window.NavigateToManage(); _ = manage.OpenDetailForAppIdAsync(appId); });
         var home = _host.Services.GetRequiredService<HomeViewModel>();
@@ -365,26 +365,26 @@ public partial class App : Application
 
         // Dragging a SteamDB / Steam store link onto either drop box installs that appid. Routed through
         // HandleProtocolUrl rather than calling ProtocolInstall directly, so a dropped link and
-        // luatools://install/<id> are literally the same path and can't drift apart later.
+        // element://install/<id> are literally the same path and can't drift apart later.
         // DropInstallViewModel is transient, so Home and Add each hold their own instance.
         Func<long, Task> installByAppId = appId =>
         {
-            Dispatcher.Invoke(() => HandleProtocolUrl($"luatools://install/{appId}"));
+            Dispatcher.Invoke(() => HandleProtocolUrl($"element://install/{appId}"));
             return Task.CompletedTask;
         };
         home.Drop.InstallByAppId = installByAppId;
         download.Drop.InstallByAppId = installByAppId;
 
-        // Home dashboard cells → section navigation.
+        // Home dashboard cells ? section navigation.
         home.NavigateToPlugin = () => Dispatcher.Invoke(window.NavigateToPlugin);
         home.NavigateToManage = () => Dispatcher.Invoke(window.NavigateToManage);
         home.NavigateToSettings = () => Dispatcher.Invoke(window.NavigateToSettings);
         home.NavigateToMode = () => Dispatcher.Invoke(window.NavigateToMode);
 
-        // Onboarding finished applying its actions → refresh the Home dashboard tiles (mode + plugin status).
+        // Onboarding finished applying its actions ? refresh the Home dashboard tiles (mode + plugin status).
         main.Onboarding.RefreshHome = () => Dispatcher.Invoke(() => home.LoadAsync());
 
-        // Any game added (plugin store-page button, drag-drop, Add page, Fixes) → refresh the library views
+        // Any game added (plugin store-page button, drag-drop, Add page, Fixes) ? refresh the library views
         // live. LuaInstaller.Installed can fire on a background thread (plugin install), so marshal to UI.
         var luaInstaller = _host.Services.GetRequiredService<LuaInstaller>();
         var appInfo = _host.Services.GetRequiredService<SteamAppInfoCache>();
@@ -406,7 +406,7 @@ public partial class App : Application
         // second instance that exited before the signal listener was wired up.
         string? url = Program.StartupUrl ?? ProtocolService.TryReadPending();
 
-        // A silent install launch (luatools://install/silent/<id>) runs headless: stay in the tray and
+        // A silent install launch (element://install/silent/<id>) runs headless: stay in the tray and
         // never surface the window. The window's Loaded handler (which restores auth) won't fire when we
         // skip Show(), so restore the session explicitly before the install runs.
         bool silentStartup = (url is not null && ProtocolService.Parse(url).Silent) || Program.StartMinimized;
@@ -504,7 +504,7 @@ public partial class App : Application
         }
     }
 
-    /// <summary>Route a luatools:// protocol URL to the appropriate page and action.</summary>
+    /// <summary>Route a element:// protocol URL to the appropriate page and action.</summary>
     private void HandleProtocolUrl(string url)
     {
         var (action, appId, silent) = ProtocolService.Parse(url);
@@ -529,7 +529,7 @@ public partial class App : Application
                         (msg, error) => Dispatcher.Invoke(() =>
                         {
                             window.ShowInstallNotification(msg, error);
-                            // Cold launch + no tray app wanted → exit once the balloon has had time to show.
+                            // Cold launch + no tray app wanted ? exit once the balloon has had time to show.
                             // ProtocolInstall already awaited this item's completion, but the user (or the
                             // store plugin) may have queued more; exiting now would cancel them mid-flight.
                             var queue = _host.Services.GetRequiredService<Services.Downloads.DownloadQueue>();

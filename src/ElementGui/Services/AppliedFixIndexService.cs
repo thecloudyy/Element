@@ -12,7 +12,7 @@ namespace ElementGui.Services;
 /// <remarks>
 /// <para>
 /// <b>This is a hint, never the truth.</b> The authoritative record of a fix is
-/// <c>&lt;install&gt;\.luatools-fix\&lt;key&gt;.json</c>, which lives with the game and travels with it.
+/// <c>&lt;install&gt;\.element-fix\&lt;key&gt;.json</c>, which lives with the game and travels with it.
 /// Every read here is confirmed against that file before it is believed, and anything that no longer
 /// checks out is dropped. Delete this index and nothing is lost: <see cref="RebuildAsync"/> reconstructs
 /// it by scanning, which is exactly what the index exists to avoid doing routinely (~10s cold across
@@ -70,7 +70,7 @@ public class AppliedFixIndexService(SteamLibraryService library, ILogger<Applied
     }
 
     /// <summary>
-    /// Rebuild from scratch by scanning every installed game for a <c>.luatools-fix</c> folder.
+    /// Rebuild from scratch by scanning every installed game for a <c>.element-fix</c> folder.
     /// </summary>
     /// <remarks>
     /// The slow path the index exists to avoid, kept because it is the only way to recover from a deleted

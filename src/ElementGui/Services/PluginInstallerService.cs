@@ -188,11 +188,11 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
         SteamDir is { } s ? LegacyDllNames.Select(n => Path.Combine(s, n)) : Enumerable.Empty<string>();
 
     // ── DLL-update testing switch ──
-    // Drop `.luatools-dll-update-disabled` in the Steam root to stop the app from replacing any installed
+    // Drop `.element-dll-update-disabled` in the Steam root to stop the app from replacing any installed
     // loader slot (auto OR manual), so hand-placed test builds survive updates. Delete the file to resume
     // normal DLL updates. Frontend updates are unaffected. Re-read on every update, so toggling needs no
-    // restart. Mirrors the DLL's own `.luatools-cdp-hook-disabled` marker idiom.
-    private const string DllUpdateDisabledMarker = ".luatools-dll-update-disabled";
+    // restart. Mirrors the DLL's own `.element-cdp-hook-disabled` marker idiom.
+    private const string DllUpdateDisabledMarker = ".element-dll-update-disabled";
     private bool DllUpdateDisabled =>
         SteamDir is { } s && File.Exists(Path.Combine(s, DllUpdateDisabledMarker));
 

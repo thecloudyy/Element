@@ -38,20 +38,18 @@ public static class AppConfig
     /// </summary>
     public static readonly string[] GithubReleasesRepos =
     [
-        "https://github.com/madoiscool/LuaTools",
-        "https://github.com/mendy-tools/LuaTools",
+        "https://github.com/thecloudyy/Element",
     ];
 
     public static string GithubReleasesRepo => GithubReleasesRepos[0];
 
     // Plugin releases
-    public const string PluginReleasesOwner = "madoiscool";
-    public const string PluginReleasesRepo = "LTSP";
+    public const string PluginReleasesOwner = "thecloudyy";
+    public const string PluginReleasesRepo = "Element";
 
     // GitHub proxy mirrors
     public static readonly string[] GithubApiMirrors =
     [
-        "https://lua.tools/api/gh/",
     ];
     public static readonly string[] GithubDownloadMirrors =
     [

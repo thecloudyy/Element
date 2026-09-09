@@ -63,7 +63,7 @@ public partial class DropZone : UserControl
             return;
         }
 
-        // A dragged SteamDB / Steam link → install that appid, same as luatools://install/<id>.
+        // A dragged SteamDB / Steam link → install that appid, same as element://install/<id>.
         if (Vm is not null) await Vm.TryHandleLinkAsync(link ?? LinkTextFrom(e.Data));
     }
 

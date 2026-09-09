@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using ElementGui.Services;
 using ElementGui.ViewModels;
 using ElementGui.Views;
@@ -29,10 +29,10 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         };
     }
 
-    // ── System tray ─────────────────────────────────────────────────
+    // -- System tray -------------------------------------------------
     private void InitializeTrayIcon()
     {
-        _trayIcon = new System.Windows.Forms.NotifyIcon { Text = "LuaTools", Visible = false };
+        _trayIcon = new System.Windows.Forms.NotifyIcon { Text = "Element", Visible = false };
         try
         {
             using var stream = Application.GetResourceStream(new Uri("pack://application:,,,/icon.ico"))?.Stream;
@@ -94,7 +94,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         Focus();
     }
 
-    /// <summary>Launch tray-only for a headless install (luatools://install/silent/&lt;id&gt;): show the tray
+    /// <summary>Launch tray-only for a headless install (element://install/silent/&lt;id&gt;): show the tray
     /// icon but never surface the window. The app sits in the background and reports via a balloon tip.</summary>
     public void StartSilent()
     {
@@ -108,7 +108,7 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
         _trayIcon.Visible = true;
         _trayIcon.ShowBalloonTip(
             5000,
-            "LuaTools",
+            "Element",
             message,
             error ? System.Windows.Forms.ToolTipIcon.Error : System.Windows.Forms.ToolTipIcon.Info);
     }

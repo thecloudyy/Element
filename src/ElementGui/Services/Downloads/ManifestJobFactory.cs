@@ -506,7 +506,7 @@ public class ManifestJobFactory(
     }
 
     /// <summary>Denuvo fix slot: extract into the game folder. Only possible if the game is installed.
-    /// Existing files are backed up as .bak inside .luatools-fix/ so the fix can be reverted.</summary>
+    /// Existing files are backed up as .bak inside .element-fix/ so the fix can be reverted.</summary>
     /// <remarks>
     /// Runs in four phases, because the revert record is the ONLY thing that makes a fix undoable and
     /// <c>FixesViewModel</c> keys the Revert button off that file existing:
@@ -672,7 +672,7 @@ public class ManifestJobFactory(
 
     private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
-    internal const string FixRecordDir = ".luatools-fix";
+    internal const string FixRecordDir = ".element-fix";
 
     /// <summary>The revert record's on-disk form. Indented because users do open these by hand.</summary>
     private static string SerializeRecord(DenuvoFixRecord record) =>

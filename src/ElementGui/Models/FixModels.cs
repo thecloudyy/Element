@@ -57,7 +57,7 @@ public class DenuvoDownloadResponse
     [JsonPropertyName("url")] public string Url { get; set; } = "";
 }
 
-// ── Fix revert record (written to .luatools-fix/ inside the game folder) ──
+// ── Fix revert record (written to .element-fix/ inside the game folder) ──
 //
 // Deliberately NOT called a manifest: in this app that word means a Steam depot manifest (depotcache,
 // ResolveManifestPath, the Fixes page's own Manifest button), and having a second meaning made people

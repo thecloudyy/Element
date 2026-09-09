@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -81,7 +81,7 @@ public partial class DownloadViewModel : ObservableObject
     private CancellationTokenSource? _searchCts;
     private CancellationTokenSource? _detailsCts;
 
-    // Per-confirm steamcmd lookup: depot/DLC id → its real depot info (name/size/os/lang).
+    // Per-confirm steamcmd lookup: depot/DLC id ? its real depot info (name/size/os/lang).
     private IReadOnlyDictionary<long, ContentDepot> _depotsById = new Dictionary<long, ContentDepot>();
 
     /// <summary>Set by App: navigate to Manage and open this appid's detail (the install banner's "Reveal").</summary>
@@ -91,7 +91,7 @@ public partial class DownloadViewModel : ObservableObject
     public ObservableCollection<SourceRowViewModel> Sources { get; } = [];
     public ObservableCollection<DlcDepot> DlcDepots { get; } = [];
 
-    // ── Featured strips (Steam top-sellers / new-releases), shown when the page is idle ──
+    // -- Featured strips (Steam top-sellers / new-releases), shown when the page is idle --
     public ObservableCollection<FeaturedItem> TopSellers { get; } = [];
     public ObservableCollection<FeaturedItem> NewReleases { get; } = [];
 
@@ -140,7 +140,7 @@ public partial class DownloadViewModel : ObservableObject
 
     public bool HasDlcInfo => DlcInfo is not null;
     public bool DlcComplete => DlcInfo?.MissingCount == 0;
-    // haveCount > 0 → keys exist; missingCount == 0 → addappid alone suffices (mirrors the website rule)
+    // haveCount > 0 ? keys exist; missingCount == 0 ? addappid alone suffices (mirrors the website rule)
     public bool CanGenerateDlc => DlcInfo is not null && (DlcInfo.HaveCount > 0 || DlcInfo.MissingCount == 0);
 
     /// <summary>True while the DLC job is queued or running (drives the button's spinner/disabled state).</summary>
@@ -156,14 +156,14 @@ public partial class DownloadViewModel : ObservableObject
     /// <summary>Drag-and-drop installer shown on the Add page.</summary>
     public DropInstallViewModel Drop { get; }
 
-    // Set while a luatools://install/silent/<id> install runs so the download path skips the interactive
+    // Set while a element://install/silent/<id> install runs so the download path skips the interactive
     // overwrite-confirm overlay (there's no surfaced window for the user to confirm it on).
     private bool _silentInstall;
 
     /// <summary>
-    /// Called by the protocol handler for luatools://install/&lt;appid&gt;. Seeds the app, fetches details,
+    /// Called by the protocol handler for element://install/&lt;appid&gt;. Seeds the app, fetches details,
     /// and auto-fires the download. When <paramref name="onComplete"/> is supplied
-    /// (the silent variant) the whole fetch→download→install chain runs headless and the final outcome
+    /// (the silent variant) the whole fetch?download?install chain runs headless and the final outcome
     /// is reported back via the callback (message, isError) so the caller can pop a tray notification.
     /// </summary>
     public async Task ProtocolInstall(long appId, Action<string, bool>? onComplete = null)
@@ -213,7 +213,7 @@ public partial class DownloadViewModel : ObservableObject
     // callback reflects the real outcome rather than "the download started".
     private DownloadItem? _lastEnqueued;
 
-    // ── Steam-plugin headless add (reflected over HTTP; no window) ────
+    // -- Steam-plugin headless add (reflected over HTTP; no window) ----
     /// <summary>Headless add driven by the Steam store plugin. Seeds the appid and runs the SAME
     /// FetchAsync pipeline the app UI uses (dynamic sources + key-gating). The plugin polls state via
     /// the HTTP server and picks a source with <see cref="DownloadSourceByNameAsync"/>.</summary>
@@ -251,7 +251,7 @@ public partial class DownloadViewModel : ObservableObject
     }
 
 
-    // ── Install result banner ───────────────────────────────────────
+    // -- Install result banner ---------------------------------------
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasInstallResult))]
     [NotifyPropertyChangedFor(nameof(ShowFeatured))]
@@ -264,7 +264,7 @@ public partial class DownloadViewModel : ObservableObject
     // the search box (which nulls Details) while the banner is still showing.
     private long? _installedAppId;
 
-    // ── Overwrite confirm overlay (base game whose lua already exists) ──
+    // -- Overwrite confirm overlay (base game whose lua already exists) --
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasDiffAdded))]
     private List<DiffRow> _diffAdded = [];
@@ -331,7 +331,7 @@ public partial class DownloadViewModel : ObservableObject
         _ = FetchDetailsDebouncedAsync(appId.ToString());
     }
 
-    // ── Search ──────────────────────────────────────────────────────
+    // -- Search ------------------------------------------------------
 
     partial void OnSearchTextChanged(string value)
     {
@@ -340,7 +340,7 @@ public partial class DownloadViewModel : ObservableObject
         ResetResults();
         Details = null;
 
-        // Cleared the box → back to the idle/featured state: dismiss the leftover install banner
+        // Cleared the box ? back to the idle/featured state: dismiss the leftover install banner
         // (ResetResults already cleared Error). Otherwise HasInstallResult keeps the featured strips hidden.
         if (string.IsNullOrWhiteSpace(value))
             InstallStatus = null;
@@ -423,7 +423,7 @@ public partial class DownloadViewModel : ObservableObject
         catch { Details = null; }
     }
 
-    /// <summary>Click a featured-strip card → load that game's details (same path as a search result).</summary>
+    /// <summary>Click a featured-strip card ? load that game's details (same path as a search result).</summary>
     [RelayCommand]
     private async Task SelectFeaturedAsync(FeaturedItem item)
     {
@@ -447,7 +447,7 @@ public partial class DownloadViewModel : ObservableObject
     }
 
     /// <summary>Fetch the Steam featured strips once (top sellers + new releases). Best-effort: on failure
-    /// the collections stay empty and the strips simply don't render. Steam hardware (Deck, Index, …) is
+    /// the collections stay empty and the strips simply don't render. Steam hardware (Deck, Index, �) is
     /// filtered out via the hardware blacklist.</summary>
     public async Task LoadFeaturedAsync()
     {
@@ -466,7 +466,7 @@ public partial class DownloadViewModel : ObservableObject
     [RelayCommand]
     private void CloseResults() => IsResultsOpen = false;
 
-    // ── Fetch (sources or DLC info, depending on app type) ─────────
+    // -- Fetch (sources or DLC info, depending on app type) ---------
 
     private bool CanFetch() => HasDetails && !IsChecking;
 
@@ -524,7 +524,7 @@ public partial class DownloadViewModel : ObservableObject
         return Task.CompletedTask;
     }
 
-    // ── Downloads ───────────────────────────────────────────────────
+    // -- Downloads ---------------------------------------------------
 
     /// <summary>
     /// Base-game manifest zip. Builds a job and hands it to the shared queue; the download, the
@@ -605,7 +605,7 @@ public partial class DownloadViewModel : ObservableObject
         _ = RefreshStandardUsageAsync();
     }
 
-    // ── Install + overwrite confirm ─────────────────────────────────
+    // -- Install + overwrite confirm ---------------------------------
 
     /// <summary>
     /// The queue's confirmation gate for a manifest whose lua is already installed: show the
@@ -626,7 +626,7 @@ public partial class DownloadViewModel : ObservableObject
     private async Task<bool> ConfirmOverwriteAsync(
         DownloadedFile file, long appId, string gameName, CancellationToken ct)
     {
-        // No existing lua → nothing to confirm against, install straight away.
+        // No existing lua ? nothing to confirm against, install straight away.
         string? existing = _installer.ReadInstalledLua(appId);
         if (existing is null) return true;
 
@@ -635,14 +635,14 @@ public partial class DownloadViewModel : ObservableObject
         {
             var oldLua = LuaFileParser.Parse(existing, appId);
             var newLua = ExtractLuaFromZip(file.FilePath, appId);
-            if (newLua is null) return true; // can't diff (bare lua / unreadable zip) → just install
+            if (newLua is null) return true; // can't diff (bare lua / unreadable zip) ? just install
 
             var diff = LuaFileParser.Diff(oldLua, newLua);
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             await App.Current.Dispatcher.InvokeAsync(async () =>
             {
-                // Names from caches + one steamcmd call (cached per app) → real names, sizes, OS, language.
+                // Names from caches + one steamcmd call (cached per app) ? real names, sizes, OS, language.
                 await _appList.EnsureLoadedAsync();
                 _depotsById = await BuildDepotLookupAsync(appId);
                 DiffAdded = diff.Added.Select(ToDiffRow).ToList();
@@ -728,7 +728,7 @@ public partial class DownloadViewModel : ObservableObject
         return _appList.GetName(e.Id) ?? _appInfo.GetCached(e.Id)?.Name ?? e.Comment;
     }
 
-    /// <summary>Enriched diff row: real name + "id · size · OS · lang" + DLC/SHARED chip + SteamDB link.</summary>
+    /// <summary>Enriched diff row: real name + "id � size � OS � lang" + DLC/SHARED chip + SteamDB link.</summary>
     private DiffRow ToDiffRow(LuaEntry e)
     {
         var d = _depotsById.GetValueOrDefault(e.Id);
@@ -750,7 +750,7 @@ public partial class DownloadViewModel : ObservableObject
             ? $"https://steamdb.info/app/{dlcId}/"
             : $"https://steamdb.info/depot/{e.Id}/";
 
-        return new DiffRow(title, string.Join("  ·  ", meta), isDlc, isShared, url);
+        return new DiffRow(title, string.Join("  �  ", meta), isDlc, isShared, url);
     }
 
     [RelayCommand]
@@ -778,7 +778,7 @@ public partial class DownloadViewModel : ObservableObject
     {
         try
         {
-            // bare .lua → parse as-is. Same byte sniff the install path uses.
+            // bare .lua ? parse as-is. Same byte sniff the install path uses.
             if (!ManifestJobFactory.IsZip(zipPath)) return LuaFileParser.Parse(zipPath, appId);
 
             using var archive = System.IO.Compression.ZipFile.OpenRead(zipPath);
@@ -794,14 +794,14 @@ public partial class DownloadViewModel : ObservableObject
         catch { return null; }
     }
 
-    /// <summary>The install banner's "Reveal" → open this game in the Manage detail view.</summary>
+    /// <summary>The install banner's "Reveal" ? open this game in the Manage detail view.</summary>
     [RelayCommand]
     private void RevealInstalled()
     {
         if ((_installedAppId ?? Details?.AppId) is { } appId) NavigateToGame?.Invoke(appId);
     }
 
-    // ── Helpers ─────────────────────────────────────────────────────
+    // -- Helpers -----------------------------------------------------
 
     private void ResetResults()
     {
@@ -814,7 +814,7 @@ public partial class DownloadViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Extract an appid from a Steam/SteamDB store URL (…/app/&lt;id&gt;), or from a bare number of 5+
+    /// Extract an appid from a Steam/SteamDB store URL (�/app/&lt;id&gt;), or from a bare number of 5+
     /// digits. Short numbers go through normal title search instead. Game titles like "007", "500"
     /// or "1942" are numbers too. Tradeoff: very old games with short appids (e.g. 500 = Left 4 Dead)
     /// won't auto-resolve from a bare number and must be searched or pasted as a URL.
