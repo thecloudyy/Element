@@ -50,13 +50,13 @@ public static class AppConfig
     // GitHub proxy mirrors
     public static readonly string[] GithubApiMirrors =
     [
-        "https://ghproxy.net/",
-        "https://api.ghproxy.net/",
+        "https://ghproxy.cn/",
+        "https://gh-proxy.com/",
     ];
     public static readonly string[] GithubDownloadMirrors =
     [
-        "https://ghproxy.net/",
-        "https://ghfast.top/",
+        "https://ghproxy.cn/",
+        "https://gh-proxy.com/",
         "https://gh.ddlc.top/",
     ];
 }
