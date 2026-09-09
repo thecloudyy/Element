@@ -94,7 +94,33 @@ public class UnlockerService(SteamService steam, SettingsService settings, Cache
         if (root is null || !steam.IsValid)
             return new ModeState(mode, ModeStatus.Unknown, active, null);
 
-        return new ModeState(mode, ModeStatus.Unknown, active, null);
+        // Check if the main payload DLL exists on disk.
+        string payloadDll = def.PlaceFiles.Last(); // ElementSteam.dll
+        string localPath = Path.Combine(root, payloadDll);
+        bool installed = File.Exists(localPath);
+
+        // Fetch the latest release from GitHub.
+        var release = await FetchReleaseAsync(def, forceRefresh, ct);
+        if (release is null)
+        {
+            // Can't reach GitHub: if installed locally we at least know that much.
+            return new ModeState(mode, installed ? ModeStatus.UpToDate : ModeStatus.NotInstalled, active, null);
+        }
+
+        if (!installed)
+            return new ModeState(mode, ModeStatus.NotInstalled, active, release.TagName);
+
+        // Compare the payload DLL hash against the release asset digest.
+        string? remoteDigest = AssetDigest(release, payloadDll);
+        if (remoteDigest is null)
+        {
+            // No per-file digest in the release; fall back to zip-level check (already installed → assume ok).
+            return new ModeState(mode, ModeStatus.UpToDate, active, release.TagName);
+        }
+
+        string localHash = AssetHash.OfFile(localPath);
+        bool upToDate = localHash.Equals(remoteDigest, StringComparison.OrdinalIgnoreCase);
+        return new ModeState(mode, upToDate ? ModeStatus.UpToDate : ModeStatus.UpdateAvailable, active, release.TagName);
     }
 
     /// <summary>
