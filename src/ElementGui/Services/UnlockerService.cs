@@ -31,7 +31,7 @@ public class UnlockerService(SteamService steam, SettingsService settings, Cache
         new(UnlockerMode.Element, "Element",
             Description: Resources.Strings.Mode_Desc_Element,
             Kind: ModeKind.Zip,
-            Owner: "madoiscool", Repo: "Element",
+            Owner: "thecloudyy", Repo: "ElementModule",
             FixedTag: null,
             PlaceFiles: ["dwmapi.dll", "xinput1_4.dll", "ElementSteam.dll"],
             ZipAssetPattern: "Element-{version}-Release.zip"),
