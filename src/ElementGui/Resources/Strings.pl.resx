@@ -67,7 +67,7 @@
   <data name="Nav_Fixes" xml:space="preserve"><value>Poprawki</value></data>
   <data name="Nav_RestartSteam" xml:space="preserve"><value>Uruchom ponownie Steam</value></data>
   <data name="Nav_Settings" xml:space="preserve"><value>Ustawienia</value></data>
-  <data name="Nav_SignInDiscord" xml:space="preserve"><value>Zaloguj się przez Discord</value></data>
+  <data name="Nav_SignInDiscord" xml:space="preserve"><value>Element</value></data>
   <data name="Nav_WaitingForBrowser" xml:space="preserve"><value>Oczekiwanie na przeglądarkę…</value></data>
   <data name="Nav_Footer_Guest" xml:space="preserve"><value>Przeglądanie jako gość</value></data>
   <data name="Nav_Footer_LoggedIn" xml:space="preserve"><value>Zalogowano</value></data>
@@ -81,15 +81,15 @@
   <data name="Settings_SignOut" xml:space="preserve"><value>Wyloguj się</value></data>
   <data name="Settings_BrowsingAsGuest" xml:space="preserve"><value>Przeglądanie jako gość</value></data>
   <data name="Settings_GuestHint" xml:space="preserve"><value>Zaloguj się, aby pobierać manifesty i odblokowania DLC</value></data>
-  <data name="Settings_SignInDiscord" xml:space="preserve"><value>Zaloguj się przez Discord</value></data>
-  <data name="Settings_BotCode_Hint" xml:space="preserve"><value>Masz kod? Uruchom /login na Discordzie i wprowadź go tutaj.</value></data>
+  <data name="Settings_SignInDiscord" xml:space="preserve"><value>Element</value></data>
+  <data name="Settings_BotCode_Hint" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotCode_Placeholder" xml:space="preserve"><value>A3X9K2</value></data>
   <data name="Settings_BotCode_Redeem" xml:space="preserve"><value>Zrealizuj</value></data>
   <data name="Settings_BotCode_Expired" xml:space="preserve"><value>Kod wygasł — uruchom /login ponownie.</value></data>
   <data name="Settings_BotCode_Invalid" xml:space="preserve"><value>Nieprawidłowy lub nieznany kod.</value></data>
   <data name="Settings_BotCode_ServerError" xml:space="preserve"><value>Błąd serwera — spróbuj ponownie.</value></data>
   <data name="Settings_BotLink_Title" xml:space="preserve"><value>Dokończ łączenie konta</value></data>
-  <data name="Settings_BotLink_Body" xml:space="preserve"><value>Jesteś zalogowany tymczasowym kontem Discord. Zaloguj się na element.app, następnie uruchom /login ponownie i wprowadź kod, aby połączyć pełne konto.</value></data>
+  <data name="Settings_BotLink_Body" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotLink_Dismiss" xml:space="preserve"><value>Odrzuć</value></data>
   <data name="Settings_LoginRequired" xml:space="preserve"><value>Ta akcja wymaga zalogowania.</value></data>
   <data name="Settings_ManageKeyHintPrefix" xml:space="preserve"><value>Zarządzaj swoim kluczem API Hubcap i profilem na</value></data>
@@ -297,7 +297,7 @@ Spowoduje to usunięcie plików .lua z Steam\config\stplug-in.</value></data>
   <data name="Fixes_Count" xml:space="preserve"><value>Poprawki: {0}</value></data>
   <data name="Fixes_Err_Load" xml:space="preserve"><value>Nie udało się załadować poprawek — sprawdź połączenie.</value></data>
   <data name="Fixes_Empty_None" xml:space="preserve"><value>Brak dostępnych poprawek.</value></data>
-  <data name="Fixes_SignIn" xml:space="preserve"><value>Zaloguj się przez Discord, aby pobierać poprawki.</value></data>
+  <data name="Fixes_SignIn" xml:space="preserve"><value>Element</value></data>
   <data name="Fixes_SignInRequired" xml:space="preserve"><value>Wymagane logowanie</value></data>
   <data name="Fixes_Toast_DownloadFailed" xml:space="preserve"><value>Pobieranie nie powiodło się</value></data>
   <data name="Fixes_Toast_DownloadFailed_Body" xml:space="preserve"><value>Coś poszło nie tak — spróbuj ponownie.</value></data>
@@ -326,8 +326,8 @@ Spowoduje to usunięcie plików .lua z Steam\config\stplug-in.</value></data>
   <data name="Add_Supporter" xml:space="preserve"><value>Supporter</value></data>
   <data name="Add_Unlimited" xml:space="preserve"><value>Nieograniczony</value></data>
   <data name="Add_RequiresOwnKey" xml:space="preserve"><value>Wymaga własnego klucza API</value></data>
-  <data name="Add_Discord" xml:space="preserve"><value>Discord</value></data>
-  <data name="Add_JoinDiscord" xml:space="preserve"><value>Dołącz do Discorda tego źródła</value></data>
+  <data name="Add_Discord" xml:space="preserve"><value>Element</value></data>
+  <data name="Add_JoinDiscord" xml:space="preserve"><value>Element</value></data>
   <data name="Add_Download" xml:space="preserve"><value>Pobierz</value></data>
   <data name="Add_NeedsHubcapKey" xml:space="preserve"><value>Wymaga klucza Hubcap</value></data>
   <data name="Add_NeedsHubcapKey_Tip" xml:space="preserve"><value>Ustaw swój klucz API Hubcap w Ustawieniach, aby odblokować to źródło</value></data>
@@ -339,8 +339,8 @@ Spowoduje to usunięcie plików .lua z Steam\config\stplug-in.</value></data>
   <data name="Add_Generating" xml:space="preserve"><value>Generowanie…</value></data>
   <data name="Add_DlcHint" xml:space="preserve"><value>Umieść plik .lua w steam\config\stplug-in — upewnij się, że gra podstawowa również jest dodana. Liczy się do twojego dziennego limitu (25/dzień).</value></data>
   <data name="Add_AlreadyHaveFiles" xml:space="preserve"><value>Masz już pliki?</value></data>
-  <data name="Add_SignIn_Dlc" xml:space="preserve"><value>Zaloguj się przez Discord, aby zobaczyć odblokowania DLC.</value></data>
-  <data name="Add_SignIn_Download" xml:space="preserve"><value>Zaloguj się przez Discord, aby pobierać.</value></data>
+  <data name="Add_SignIn_Dlc" xml:space="preserve"><value>Element</value></data>
+  <data name="Add_SignIn_Download" xml:space="preserve"><value>Element</value></data>
   <data name="Add_Err_BaseGame" xml:space="preserve"><value>Nie udało się ustalić gry podstawowej dla tego DLC</value></data>
   <data name="Add_Err_Generic" xml:space="preserve"><value>Coś poszło nie tak — sprawdź połączenie i spróbuj ponownie.</value></data>
   <data name="Add_Err_Download" xml:space="preserve"><value>Pobieranie nie powiodło się — sprawdź połączenie i spróbuj ponownie.</value></data>

@@ -67,7 +67,7 @@
   <data name="Nav_Fixes" xml:space="preserve"><value>Fixes</value></data>
   <data name="Nav_RestartSteam" xml:space="preserve"><value>Restart Steam</value></data>
   <data name="Nav_Settings" xml:space="preserve"><value>Settings</value></data>
-  <data name="Nav_SignInDiscord" xml:space="preserve"><value>Sign in with Discord</value></data>
+  <data name="Nav_SignInDiscord" xml:space="preserve"><value>Element</value></data>
   <data name="Nav_WaitingForBrowser" xml:space="preserve"><value>Waiting for browser…</value></data>
   <data name="Nav_Footer_Guest" xml:space="preserve"><value>Browsing as Guest</value></data>
   <data name="Nav_Footer_LoggedIn" xml:space="preserve"><value>Logged In</value></data>
@@ -83,15 +83,15 @@
   <data name="Settings_SignOut" xml:space="preserve"><value>Sign out</value></data>
   <data name="Settings_BrowsingAsGuest" xml:space="preserve"><value>Browsing as guest</value></data>
   <data name="Settings_GuestHint" xml:space="preserve"><value>Sign in to download manifests and DLC unlocks</value></data>
-  <data name="Settings_SignInDiscord" xml:space="preserve"><value>Sign in with Discord</value></data>
-  <data name="Settings_BotCode_Hint" xml:space="preserve"><value>Have a code? Run /login in Discord and enter it here.</value></data>
+  <data name="Settings_SignInDiscord" xml:space="preserve"><value>Element</value></data>
+  <data name="Settings_BotCode_Hint" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotCode_Placeholder" xml:space="preserve"><value>A3X9K2</value></data>
   <data name="Settings_BotCode_Redeem" xml:space="preserve"><value>Redeem</value></data>
   <data name="Settings_BotCode_Expired" xml:space="preserve"><value>Code expired. Run /login again.</value></data>
   <data name="Settings_BotCode_Invalid" xml:space="preserve"><value>Invalid or unknown code.</value></data>
   <data name="Settings_BotCode_ServerError" xml:space="preserve"><value>Server error. Try again.</value></data>
   <data name="Settings_BotLink_Title" xml:space="preserve"><value>Finish linking your account</value></data>
-  <data name="Settings_BotLink_Body" xml:space="preserve"><value>You're signed in with a temporary Discord account. Sign in at element.app, then run /login again and enter the code to link your full account.</value></data>
+  <data name="Settings_BotLink_Body" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotLink_Dismiss" xml:space="preserve"><value>Dismiss</value></data>
   <data name="Settings_LoginRequired" xml:space="preserve"><value>Login is required for this action.</value></data>
   <data name="Settings_ManageKeyHintPrefix" xml:space="preserve"><value>Manage your Hubcap API key and profile on</value></data>
@@ -331,7 +331,7 @@ This deletes the .lua files from Steam\config\stplug-in.</value></data>
   <data name="Fixes_Count" xml:space="preserve"><value>{0} fixes</value></data>
   <data name="Fixes_Err_Load" xml:space="preserve"><value>Couldn't load fixes. Check your connection.</value></data>
   <data name="Fixes_Empty_None" xml:space="preserve"><value>No fixes available yet.</value></data>
-  <data name="Fixes_SignIn" xml:space="preserve"><value>Sign in with Discord to download fixes.</value></data>
+  <data name="Fixes_SignIn" xml:space="preserve"><value>Element</value></data>
   <data name="Fixes_SignInRequired" xml:space="preserve"><value>Sign in required</value></data>
   <data name="Fixes_Toast_DownloadFailed" xml:space="preserve"><value>Download failed</value></data>
   <data name="Fixes_Toast_DownloadFailed_Body" xml:space="preserve"><value>Something went wrong. Try again.</value></data>
@@ -378,8 +378,8 @@ This deletes the .lua files from Steam\config\stplug-in.</value></data>
   <data name="Add_Supporter" xml:space="preserve"><value>Supporter</value></data>
   <data name="Add_Unlimited" xml:space="preserve"><value>Unlimited</value></data>
   <data name="Add_RequiresOwnKey" xml:space="preserve"><value>Requires your own API key</value></data>
-  <data name="Add_Discord" xml:space="preserve"><value>Discord</value></data>
-  <data name="Add_JoinDiscord" xml:space="preserve"><value>Join this source's Discord</value></data>
+  <data name="Add_Discord" xml:space="preserve"><value>Element</value></data>
+  <data name="Add_JoinDiscord" xml:space="preserve"><value>Element</value></data>
   <data name="Add_Download" xml:space="preserve"><value>Download</value></data>
   <data name="Add_NeedsHubcapKey" xml:space="preserve"><value>Needs Hubcap key</value></data>
   <data name="Add_NeedsHubcapKey_Tip" xml:space="preserve"><value>Set your Hubcap API key in Settings to unlock this source</value></data>
@@ -392,8 +392,8 @@ This deletes the .lua files from Steam\config\stplug-in.</value></data>
   <data name="Add_DlcHint" xml:space="preserve"><value>Put the .lua into steam\config\stplug-in, and make sure the base game is added too. Counts toward your daily limit (25/day).</value></data>
   <data name="Add_AlreadyHaveFiles" xml:space="preserve"><value>Already have the files?</value></data>
   <!-- Add / Download C# strings -->
-  <data name="Add_SignIn_Dlc" xml:space="preserve"><value>Sign in with Discord to view DLC unlocks.</value></data>
-  <data name="Add_SignIn_Download" xml:space="preserve"><value>Sign in with Discord to download.</value></data>
+  <data name="Add_SignIn_Dlc" xml:space="preserve"><value>Element</value></data>
+  <data name="Add_SignIn_Download" xml:space="preserve"><value>Element</value></data>
   <data name="Add_Err_BaseGame" xml:space="preserve"><value>Could not resolve the base game for this DLC</value></data>
   <data name="Add_Err_Generic" xml:space="preserve"><value>Something went wrong. Check your connection and try again.</value></data>
   <data name="Add_Err_Download" xml:space="preserve"><value>Download failed. Check your connection and try again.</value></data>

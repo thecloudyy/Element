@@ -67,7 +67,7 @@
   <data name="Nav_Fixes" xml:space="preserve"><value>Düzeltmeler</value></data>
   <data name="Nav_RestartSteam" xml:space="preserve"><value>Steam'i Yeniden Başlat</value></data>
   <data name="Nav_Settings" xml:space="preserve"><value>Ayarlar</value></data>
-  <data name="Nav_SignInDiscord" xml:space="preserve"><value>Discord ile giriş yap</value></data>
+  <data name="Nav_SignInDiscord" xml:space="preserve"><value>Element</value></data>
   <data name="Nav_WaitingForBrowser" xml:space="preserve"><value>Tarayıcı bekleniyor…</value></data>
   <data name="Nav_Footer_Guest" xml:space="preserve"><value>Misafir olarak geziniyor</value></data>
   <data name="Nav_Footer_LoggedIn" xml:space="preserve"><value>Giriş yapıldı</value></data>
@@ -81,15 +81,15 @@
   <data name="Settings_SignOut" xml:space="preserve"><value>Çıkış yap</value></data>
   <data name="Settings_BrowsingAsGuest" xml:space="preserve"><value>Misafir olarak geziniyor</value></data>
   <data name="Settings_GuestHint" xml:space="preserve"><value>Manifestoları ve DLC kilit açmalarını indirmek için giriş yapın</value></data>
-  <data name="Settings_SignInDiscord" xml:space="preserve"><value>Discord ile giriş yap</value></data>
-  <data name="Settings_BotCode_Hint" xml:space="preserve"><value>Kodun var mı? Discord'da /login komutunu çalıştır ve buraya gir.</value></data>
+  <data name="Settings_SignInDiscord" xml:space="preserve"><value>Element</value></data>
+  <data name="Settings_BotCode_Hint" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotCode_Placeholder" xml:space="preserve"><value>A3X9K2</value></data>
   <data name="Settings_BotCode_Redeem" xml:space="preserve"><value>Kullan</value></data>
   <data name="Settings_BotCode_Expired" xml:space="preserve"><value>Kodun süresi doldu — /login komutunu tekrar çalıştır.</value></data>
   <data name="Settings_BotCode_Invalid" xml:space="preserve"><value>Geçersiz veya bilinmeyen kod.</value></data>
   <data name="Settings_BotCode_ServerError" xml:space="preserve"><value>Sunucu hatası — tekrar dene.</value></data>
   <data name="Settings_BotLink_Title" xml:space="preserve"><value>Hesabını bağlamayı tamamla</value></data>
-  <data name="Settings_BotLink_Body" xml:space="preserve"><value>Geçici bir Discord hesabıyla giriş yaptın. element.app'ta oturum aç, ardından /login komutunu tekrar çalıştır ve tam hesabını bağlamak için kodu gir.</value></data>
+  <data name="Settings_BotLink_Body" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotLink_Dismiss" xml:space="preserve"><value>Kapat</value></data>
   <data name="Settings_LoginRequired" xml:space="preserve"><value>Bu işlem için giriş yapmanız gerekiyor.</value></data>
   <data name="Settings_ManageKeyHintPrefix" xml:space="preserve"><value>Hubcap API anahtarınızı ve profilinizi şurada yönetin:</value></data>
@@ -297,7 +297,7 @@ Bu, .lua dosyalarını Steam\config\stplug-in konumundan siler.</value></data>
   <data name="Fixes_Count" xml:space="preserve"><value>{0} düzeltme</value></data>
   <data name="Fixes_Err_Load" xml:space="preserve"><value>Düzeltmeler yüklenemedi — bağlantınızı kontrol edin.</value></data>
   <data name="Fixes_Empty_None" xml:space="preserve"><value>Henüz kullanılabilir düzeltme yok.</value></data>
-  <data name="Fixes_SignIn" xml:space="preserve"><value>Düzeltmeleri indirmek için Discord ile giriş yapın.</value></data>
+  <data name="Fixes_SignIn" xml:space="preserve"><value>Element</value></data>
   <data name="Fixes_SignInRequired" xml:space="preserve"><value>Giriş gerekli</value></data>
   <data name="Fixes_Toast_DownloadFailed" xml:space="preserve"><value>İndirme başarısız</value></data>
   <data name="Fixes_Toast_DownloadFailed_Body" xml:space="preserve"><value>Bir şeyler ters gitti — tekrar deneyin.</value></data>
@@ -326,8 +326,8 @@ Bu, .lua dosyalarını Steam\config\stplug-in konumundan siler.</value></data>
   <data name="Add_Supporter" xml:space="preserve"><value>Supporter</value></data>
   <data name="Add_Unlimited" xml:space="preserve"><value>Sınırsız</value></data>
   <data name="Add_RequiresOwnKey" xml:space="preserve"><value>Kendi API anahtarınızı gerektirir</value></data>
-  <data name="Add_Discord" xml:space="preserve"><value>Discord</value></data>
-  <data name="Add_JoinDiscord" xml:space="preserve"><value>Bu kaynağın Discord'una katılın</value></data>
+  <data name="Add_Discord" xml:space="preserve"><value>Element</value></data>
+  <data name="Add_JoinDiscord" xml:space="preserve"><value>Element</value></data>
   <data name="Add_Download" xml:space="preserve"><value>İndir</value></data>
   <data name="Add_NeedsHubcapKey" xml:space="preserve"><value>Hubcap anahtarı gerekiyor</value></data>
   <data name="Add_NeedsHubcapKey_Tip" xml:space="preserve"><value>Bu kaynağın kilidini açmak için Ayarlar'da Hubcap API anahtarınızı belirleyin</value></data>
@@ -339,8 +339,8 @@ Bu, .lua dosyalarını Steam\config\stplug-in konumundan siler.</value></data>
   <data name="Add_Generating" xml:space="preserve"><value>Oluşturuluyor…</value></data>
   <data name="Add_DlcHint" xml:space="preserve"><value>.lua dosyasını steam\config\stplug-in içine koyun — ana oyunun da eklendiğinden emin olun. Günlük sınırınıza dahildir (25/gün).</value></data>
   <data name="Add_AlreadyHaveFiles" xml:space="preserve"><value>Dosyalar zaten sizde mi?</value></data>
-  <data name="Add_SignIn_Dlc" xml:space="preserve"><value>DLC kilit açmalarını görüntülemek için Discord ile giriş yapın.</value></data>
-  <data name="Add_SignIn_Download" xml:space="preserve"><value>İndirmek için Discord ile giriş yapın.</value></data>
+  <data name="Add_SignIn_Dlc" xml:space="preserve"><value>Element</value></data>
+  <data name="Add_SignIn_Download" xml:space="preserve"><value>Element</value></data>
   <data name="Add_Err_BaseGame" xml:space="preserve"><value>Bu DLC'nin ana oyunu belirlenemedi</value></data>
   <data name="Add_Err_Generic" xml:space="preserve"><value>Bir şeyler ters gitti — bağlantınızı kontrol edip tekrar deneyin.</value></data>
   <data name="Add_Err_Download" xml:space="preserve"><value>İndirme başarısız — bağlantınızı kontrol edip tekrar deneyin.</value></data>

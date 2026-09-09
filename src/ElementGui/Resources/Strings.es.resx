@@ -67,7 +67,7 @@
   <data name="Nav_Fixes" xml:space="preserve"><value>Parches</value></data>
   <data name="Nav_RestartSteam" xml:space="preserve"><value>Reiniciar Steam</value></data>
   <data name="Nav_Settings" xml:space="preserve"><value>Ajustes</value></data>
-  <data name="Nav_SignInDiscord" xml:space="preserve"><value>Iniciar sesión con Discord</value></data>
+  <data name="Nav_SignInDiscord" xml:space="preserve"><value>Element</value></data>
   <data name="Nav_WaitingForBrowser" xml:space="preserve"><value>Esperando al navegador…</value></data>
   <data name="Nav_Footer_Guest" xml:space="preserve"><value>Navegando como invitado</value></data>
   <data name="Nav_Footer_LoggedIn" xml:space="preserve"><value>Sesión iniciada</value></data>
@@ -81,15 +81,15 @@
   <data name="Settings_SignOut" xml:space="preserve"><value>Cerrar sesión</value></data>
   <data name="Settings_BrowsingAsGuest" xml:space="preserve"><value>Navegando como invitado</value></data>
   <data name="Settings_GuestHint" xml:space="preserve"><value>Inicia sesión para descargar manifiestos y desbloqueos de DLC</value></data>
-  <data name="Settings_SignInDiscord" xml:space="preserve"><value>Iniciar sesión con Discord</value></data>
-  <data name="Settings_BotCode_Hint" xml:space="preserve"><value>¿Tienes un código? Ejecuta /login en Discord e introdúcelo aquí.</value></data>
+  <data name="Settings_SignInDiscord" xml:space="preserve"><value>Element</value></data>
+  <data name="Settings_BotCode_Hint" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotCode_Placeholder" xml:space="preserve"><value>A3X9K2</value></data>
   <data name="Settings_BotCode_Redeem" xml:space="preserve"><value>Canjear</value></data>
   <data name="Settings_BotCode_Expired" xml:space="preserve"><value>El código caducó — ejecuta /login de nuevo.</value></data>
   <data name="Settings_BotCode_Invalid" xml:space="preserve"><value>Código no válido o desconocido.</value></data>
   <data name="Settings_BotCode_ServerError" xml:space="preserve"><value>Error del servidor — inténtalo de nuevo.</value></data>
   <data name="Settings_BotLink_Title" xml:space="preserve"><value>Termina de vincular tu cuenta</value></data>
-  <data name="Settings_BotLink_Body" xml:space="preserve"><value>Has iniciado sesión con una cuenta temporal de Discord. Inicia sesión en element.app, luego ejecuta /login de nuevo e introduce el código para vincular tu cuenta completa.</value></data>
+  <data name="Settings_BotLink_Body" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotLink_Dismiss" xml:space="preserve"><value>Descartar</value></data>
   <data name="Settings_LoginRequired" xml:space="preserve"><value>Es necesario iniciar sesión para esta acción.</value></data>
   <data name="Settings_ManageKeyHintPrefix" xml:space="preserve"><value>Gestiona tu clave de API de Hubcap y tu perfil en</value></data>
@@ -297,7 +297,7 @@ Esto elimina los archivos .lua de Steam\config\stplug-in.</value></data>
   <data name="Fixes_Count" xml:space="preserve"><value>{0} parches</value></data>
   <data name="Fixes_Err_Load" xml:space="preserve"><value>No se pudieron cargar los parches: comprueba tu conexión.</value></data>
   <data name="Fixes_Empty_None" xml:space="preserve"><value>Aún no hay parches disponibles.</value></data>
-  <data name="Fixes_SignIn" xml:space="preserve"><value>Inicia sesión con Discord para descargar parches.</value></data>
+  <data name="Fixes_SignIn" xml:space="preserve"><value>Element</value></data>
   <data name="Fixes_SignInRequired" xml:space="preserve"><value>Se requiere iniciar sesión</value></data>
   <data name="Fixes_Toast_DownloadFailed" xml:space="preserve"><value>Error de descarga</value></data>
   <data name="Fixes_Toast_DownloadFailed_Body" xml:space="preserve"><value>Algo salió mal: inténtalo de nuevo.</value></data>
@@ -342,8 +342,8 @@ Esto elimina los archivos .lua de Steam\config\stplug-in.</value></data>
   <data name="Add_Supporter" xml:space="preserve"><value>Supporter</value></data>
   <data name="Add_Unlimited" xml:space="preserve"><value>Ilimitado</value></data>
   <data name="Add_RequiresOwnKey" xml:space="preserve"><value>Requiere tu propia clave de API</value></data>
-  <data name="Add_Discord" xml:space="preserve"><value>Discord</value></data>
-  <data name="Add_JoinDiscord" xml:space="preserve"><value>Únete al Discord de esta fuente</value></data>
+  <data name="Add_Discord" xml:space="preserve"><value>Element</value></data>
+  <data name="Add_JoinDiscord" xml:space="preserve"><value>Element</value></data>
   <data name="Add_Download" xml:space="preserve"><value>Descargar</value></data>
   <data name="Add_NeedsHubcapKey" xml:space="preserve"><value>Necesita clave de Hubcap</value></data>
   <data name="Add_NeedsHubcapKey_Tip" xml:space="preserve"><value>Define tu clave de API de Hubcap en Ajustes para desbloquear esta fuente</value></data>
@@ -355,8 +355,8 @@ Esto elimina los archivos .lua de Steam\config\stplug-in.</value></data>
   <data name="Add_Generating" xml:space="preserve"><value>Generando…</value></data>
   <data name="Add_DlcHint" xml:space="preserve"><value>Coloca el .lua en steam\config\stplug-in; asegúrate de que el juego base también esté añadido. Cuenta para tu límite diario (25/día).</value></data>
   <data name="Add_AlreadyHaveFiles" xml:space="preserve"><value>¿Ya tienes los archivos?</value></data>
-  <data name="Add_SignIn_Dlc" xml:space="preserve"><value>Inicia sesión con Discord para ver los desbloqueos de DLC.</value></data>
-  <data name="Add_SignIn_Download" xml:space="preserve"><value>Inicia sesión con Discord para descargar.</value></data>
+  <data name="Add_SignIn_Dlc" xml:space="preserve"><value>Element</value></data>
+  <data name="Add_SignIn_Download" xml:space="preserve"><value>Element</value></data>
   <data name="Add_Err_BaseGame" xml:space="preserve"><value>No se pudo determinar el juego base de este DLC</value></data>
   <data name="Add_Err_Generic" xml:space="preserve"><value>Algo salió mal: comprueba tu conexión e inténtalo de nuevo.</value></data>
   <data name="Add_Err_Download" xml:space="preserve"><value>Error de descarga: comprueba tu conexión e inténtalo de nuevo.</value></data>
