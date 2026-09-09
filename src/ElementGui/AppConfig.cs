@@ -45,7 +45,7 @@ public static class AppConfig
 
     // Plugin releases
     public const string PluginReleasesOwner = "thecloudyy";
-    public const string PluginReleasesRepo = "Element";
+    public const string PluginReleasesRepo = "LTSP";
 
     // GitHub proxy mirrors
     public static readonly string[] GithubApiMirrors =
