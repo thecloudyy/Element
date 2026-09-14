@@ -9,21 +9,25 @@ using ElementGui.Models;
 
 namespace ElementGui.Services;
 
-/// <summary>Queried state of the installed plugin vs. the latest GitHub release.</summary>
+/// <summary>Queried state of the Core vs. the latest GitHub release. The components
+/// (manifestdexcore.dll, dwmapi.dll, xinput1_4.dll on disk) are local-only: they need no
+/// network, so an offline machine with the Core installed still reads "Installed".</summary>
 public sealed record PluginStatus(
-    bool FrontendInstalled,
-    bool DllInstalled,
-    bool DllMatches,       // every loader slot's sha256 == its latest release asset digest
+    bool CoreInstalled,          // all three component DLLs present in the Steam root
+    bool ManifestdexcoreInstalled,
+    bool DwmapiInstalled,
+    bool XinputInstalled,
     string? InstalledTag,  // from the on-disk manifest (null if never installed / no manifest)
     string? LatestTag,
-    bool UpdateAvailable,
+    bool UpdateAvailable,  // an Element-made install (manifest on disk) older than the latest release
+    bool UpToDate,         // online: every PRESENT component DLL matches its same-named release asset
     bool MillenniumPresent,
     bool Offline,          // couldn't reach GitHub
     bool Port8080Busy);    // something other than Steam's own CDP server is listening on CDP's fixed port. Warn only, see IsPort8080BusyAsync
 
 /// <summary>
-/// Installs / updates / removes the LuaTools store-page plugin from GitHub releases (the app is the plugin
-/// MANAGER: it doesn't bundle the frontend). Each release of <c>madoiscool/LTSP</c> carries
+/// Installs / updates / removes the ManifestDeXCore store-page plugin from GitHub releases (the app is the plugin
+/// MANAGER: it doesn't bundle the frontend). Each release of <c>OpenSteam001/manifestdexcore</c> carries
 /// <c>plugin.zip</c> (the frontend, extracted to %AppData%\ElementGui\plugin, where CefInjectorService
 /// reads it) plus one loader DLL per <see cref="Slots"/> entry, dropped into the Steam install root
 /// (steam.exe loads it). Modeled on <see cref="UnlockerService"/>: fetch release JSON, download assets
@@ -44,9 +48,9 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
 
     private const string PluginZipAsset = "plugin.zip";
 
-    /// <summary>The one DLL-proxy slot the loader ships as. <c>winmm.dll</c> is loaded dynamically (audio)
-    /// by steam.exe, is never a KnownDLL on Win10 or Win11, and isn't claimed by Millennium (wsock32/
-    /// version), or OpenSteamTool (dwmapi/xinput). Its old weakness (load timing isn't guaranteed relative
+/// <summary>The one DLL-proxy slot the loader ships as. <c>manifestdexcore.dll</c> is loaded dynamically (audio)
+/// by steam.exe, is never a KnownDLL on Win10 or Win11, and isn't claimed by Millennium (wsock32/
+/// version), or ManifestDeXCore (dwmapi/xinput). Its old weakness (load timing isn't guaranteed relative
     /// to steamwebhelper's launch) no longer matters now that CDP is opened by the junction instead of a
     /// hook this DLL installs: there's no launch to catch a deadline for anymore, just "eventually load
     /// while Steam is running." Other slots were each dead ends: bcrypt is KnownDLLs-forced on Win10,
@@ -59,7 +63,7 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
 
     private static readonly LoaderSlot[] Slots =
     {
-        new("winmm.dll", "winmm_real.dll", "winmm.dll"),
+        new("manifestdexcore.dll", "manifestdexcore_real.dll", "manifestdexcore.dll"),
     };
 
     // Old slots to clean up on install/update: if left in the Steam root they'd load and run the loader
@@ -245,22 +249,27 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
         catch { return null; }
     }
 
-    /// <summary>Fast, network-free check: the plugin frontend + a loader slot are both present. Used by the
+    /// <summary>Fast, network-free check: all three Core component DLLs are present. Used by the
     /// first-run onboarding gate (no GitHub round-trip, unlike <see cref="GetStatusAsync"/>).</summary>
-    public bool IsInstalledLocally() =>
-        File.Exists(LuatoolsJsPath)
-        && (Slots.Any(s => SlotPath(s) is { } p && File.Exists(p)) || LegacyDllPaths.Any(File.Exists));
+    public bool IsInstalledLocally() => IsCoreInstalled();
+
+    /// <summary>True when the full Core (manifestdexcore.dll + dwmapi.dll + xinput1_4.dll) sits in
+    /// the Steam root. Pure local check: needs no GitHub, no manifest, no frontend. This is what
+    /// the Plugin page headline and the Home tile treat as "installed".</summary>
+    public bool IsCoreInstalled() =>
+        SteamDir is { } s
+        && File.Exists(Path.Combine(s, "manifestdexcore.dll"))
+        && File.Exists(Path.Combine(s, "dwmapi.dll"))
+        && File.Exists(Path.Combine(s, "xinput1_4.dll"));
 
     public async Task<PluginStatus> GetStatusAsync(bool force = false, CancellationToken ct = default)
     {
-        bool frontend = File.Exists(LuatoolsJsPath);
-        // "installed" if AT LEAST ONE slot's proxy is present. A partial/mid-migration state still counts
-        // as installed and eligible for auto-update, rather than showing "not installed". An OLD loader
-        // (psapi/dbghelp) also still counts. Otherwise a user who hasn't migrated shows "not installed"
-        // and the auto-update gate (UpdateAvailable) never fires, stranding them on the dead loader.
-        bool anySlotPresent = Slots.Any(slot => SlotPath(slot) is { } p && File.Exists(p));
-        bool legacy = LegacyDllPaths.Any(File.Exists);
-        bool loader = anySlotPresent || legacy;
+        // Local truth, known with or without network: the headline indicator uses this, not GitHub.
+        string? steamRoot = SteamDir;
+        bool mdx = steamRoot is not null && File.Exists(Path.Combine(steamRoot, "manifestdexcore.dll"));
+        bool dwm = steamRoot is not null && File.Exists(Path.Combine(steamRoot, "dwmapi.dll"));
+        bool xin = steamRoot is not null && File.Exists(Path.Combine(steamRoot, "xinput1_4.dll"));
+        bool coreInstalled = mdx && dwm && xin;
 
         // Self-heal the CDP junction on every status check, not just when InstallAsync happens to run.
         // InstallAsync only fires on a fresh install or when a version bump makes UpdateAvailable true. Once
@@ -270,8 +279,8 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
         // full uninstall+reinstall (forces InstallAsync unconditionally). Exactly the workaround users have
         // been reporting. GetStatusAsync runs on every Steam-open poke, so checking here closes that gap
         // continuously instead of only at version-bump time. Cheap when already correct (single attribute
-        // check, no shellout) and only touches the loader DLL is actually installed.
-        if (loader && CdpMarkerPath is { } liveMarkerPath)
+        // check, no shellout) and only touches the marker when the Core DLL is actually installed.
+        if (mdx && CdpMarkerPath is { } liveMarkerPath)
             CreateCdpMarkerJunction(liveMarkerPath);
 
         bool port8080Busy = await IsPort8080BusyAsync();
@@ -279,20 +288,26 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
         var latest = await FetchLatestAsync(force, ct);
 
         if (latest is null)
-            return new PluginStatus(frontend, loader, false, manifest?.Tag, null, UpdateAvailable: false,
-                MillenniumPresent, Offline: true, port8080Busy);
+            return new PluginStatus(coreInstalled, mdx, dwm, xin, manifest?.Tag, null, UpdateAvailable: false,
+                UpToDate: false, MillenniumPresent, Offline: true, port8080Busy);
 
-        // dllMatches = true only when EVERY slot's proxy is present and matches its release asset digest.
-        bool dllMatches = Slots.All(slot =>
-            SlotPath(slot) is { } p && File.Exists(p) &&
-            AssetDigest(latest, slot.DllAsset) is { } digest &&
-            AssetHash.OfFile(p) == digest);
-        bool installed = frontend && loader;
-        // `|| legacy` keeps a leftover/locked legacy dll getting swept on subsequent auto-updates until gone.
-        bool updateAvailable = installed && (manifest?.Tag != latest.TagName || !dllMatches || legacy);
+        // Online freshness: every PRESENT component must match its same-named release asset
+        // (a missing digest counts as a match — nothing to check against). Absent components
+        // don't count: their row already reads "not installed".
+        bool upToDate = steamRoot is not null
+            && (mdx || dwm || xin)
+            && (!mdx || AssetHash.Matches(Path.Combine(steamRoot, "manifestdexcore.dll"), AssetDigest(latest, "manifestdexcore.dll")))
+            && (!dwm || AssetHash.Matches(Path.Combine(steamRoot, "dwmapi.dll"), AssetDigest(latest, "dwmapi.dll")))
+            && (!xin || AssetHash.Matches(Path.Combine(steamRoot, "xinput1_4.dll"), AssetDigest(latest, "xinput1_4.dll")));
 
-        return new PluginStatus(frontend, loader, dllMatches, manifest?.Tag, latest.TagName, updateAvailable,
-            MillenniumPresent, Offline: false, port8080Busy);
+        // Update-eligible when an Element-made install (manifest on disk) is older than the
+        // release, or when it claims to be current but a component hash proves otherwise
+        // (repair). Hand-placed DLLs (no manifest) are never auto-touched.
+        bool updateAvailable = manifest?.Tag is { } installedTag
+            && (installedTag != latest.TagName || (coreInstalled && !upToDate));
+
+        return new PluginStatus(coreInstalled, mdx, dwm, xin, manifest?.Tag, latest.TagName, updateAvailable,
+            upToDate, MillenniumPresent, Offline: false, port8080Busy);
     }
 
     // ── Install / update ──
@@ -300,18 +315,59 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
     {
         if (SteamDir is not { } steamDir) return (false, Resources.Strings.Plugin_Err_SteamNotFound);
 
+        // Always close Steam before making any changes (DLLs, frontend, config).
+        bool wasRunning = Process.GetProcessesByName("steam").Length > 0;
+        steam.StopSteam();
+        await Task.Delay(1200, ct); // let file handles release after the kill
+
+        // Clean up ALL old files before installing fresh (reinstall = full clean).
+        foreach (var slot in Slots)
+        {
+            if (SlotPath(slot) is { } bp && File.Exists(bp)) try { File.Delete(bp); } catch { }
+            if (SlotRealPath(slot) is { } br && File.Exists(br)) try { File.Delete(br); } catch { }
+        }
+        foreach (var legacy in LegacyDllPaths)
+            if (File.Exists(legacy)) try { File.Delete(legacy); } catch { }
+        foreach (string dll in new[] { "dwmapi.dll", "xinput1_4.dll" })
+        {
+            string path = Path.Combine(steamDir, dll);
+            if (File.Exists(path)) try { File.Delete(path); } catch { }
+        }
+        if (CdpMarkerPath is { } cleanMarker) RemoveCdpMarkerJunction(cleanMarker);
+        if (Directory.Exists(FrontendDir)) try { Directory.Delete(FrontendDir, recursive: true); } catch { }
+        var manifest = ReadManifest();
+        if (MillenniumPresent)
+            SetMillenniumLuatoolsEnabled(enable: true, restore: manifest?.DisabledMillenniumEntries);
+
         var latest = await FetchLatestAsync(force: true, ct);
-        if (latest is null) return (false, Resources.Strings.Plugin_Err_GithubUnreachable);
+        if (latest is null)
+        {
+            if (wasRunning) steam.StartSteam();
+            return (false, Resources.Strings.Plugin_Err_GithubUnreachable);
+        }
 
         var zipAsset = FindAsset(latest, PluginZipAsset);
-        if (zipAsset is null)
-            return (false, string.Format(Resources.Strings.Plugin_Err_MissingAssets, latest.TagName, PluginZipAsset, Slots[0].DllAsset));
         var slotAssets = new Dictionary<LoaderSlot, GithubAsset>();
         foreach (var slot in Slots)
         {
             if (FindAsset(latest, slot.DllAsset) is not { } asset)
+            {
+                if (wasRunning) steam.StartSteam();
                 return (false, string.Format(Resources.Strings.Plugin_Err_MissingAssets, latest.TagName, PluginZipAsset, slot.DllAsset));
+            }
             slotAssets[slot] = asset;
+        }
+        // Companion Core DLLs (dwmapi/xinput): mandatory. All three DLLs must be present.
+        string[] companionNames = ["dwmapi.dll", "xinput1_4.dll"];
+        var companionAssets = new Dictionary<string, GithubAsset>();
+        foreach (string name in companionNames)
+        {
+            if (FindAsset(latest, name) is not { } asset)
+            {
+                if (wasRunning) steam.StartSteam();
+                return (false, string.Format(Resources.Strings.Plugin_Err_MissingAssets, latest.TagName, name, name));
+            }
+            companionAssets[name] = asset;
         }
 
         string tmp = Path.Combine(Path.GetTempPath(), "luatools-plugin-" + Guid.NewGuid().ToString("N"));
@@ -319,8 +375,12 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
         Dictionary<string, List<string>>? disabledMillenniumEntries = null;
         try
         {
-            string zipPath = Path.Combine(tmp, PluginZipAsset);
-            await gh.DownloadAsync(zipAsset.DownloadUrl, zipPath, progress, ct);
+            string? zipPath = null;
+            if (zipAsset is not null)
+            {
+                zipPath = Path.Combine(tmp, PluginZipAsset);
+                await gh.DownloadAsync(zipAsset.DownloadUrl, zipPath, progress, ct);
+            }
             var slotDlPaths = new Dictionary<LoaderSlot, string>();
             foreach (var (slot, asset) in slotAssets)
             {
@@ -328,51 +388,87 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
                 await gh.DownloadAsync(asset.DownloadUrl, p, progress, ct);
                 slotDlPaths[slot] = p;
             }
+            var companionDlPaths = new Dictionary<string, string>();
+            foreach (var (name, asset) in companionAssets)
+            {
+                string p = Path.Combine(tmp, name);
+                await gh.DownloadAsync(asset.DownloadUrl, p, progress, ct);
+                companionDlPaths[name] = p;
+            }
 
             // Verify each against its release asset digest before touching anything on disk.
-            string zipSha = AssetHash.OfFile(zipPath);
-            if (AssetDigest(latest, PluginZipAsset) is { } zd && zipSha != zd)
-                return (false, string.Format(Resources.Strings.Plugin_Err_VerifyFailed, PluginZipAsset));
+            // A missing digest counts as a pass (AssetHash.Matches semantics): older releases
+            // predate per-asset digests and must still install.
+            string zipSha = "";
+            if (zipPath is not null)
+            {
+                zipSha = AssetHash.OfFile(zipPath);
+                if (!AssetHash.Matches(zipPath, AssetDigest(latest, PluginZipAsset)))
+                {
+                    if (wasRunning) steam.StartSteam();
+                    return (false, string.Format(Resources.Strings.Plugin_Err_VerifyFailed, PluginZipAsset));
+                }
+            }
             var slotShas = new Dictionary<LoaderSlot, string>();
+            var dllShas = new Dictionary<string, string>(); // asset/file name -> sha256 (slots + companions)
             foreach (var (slot, p) in slotDlPaths)
             {
                 string sha = AssetHash.OfFile(p);
                 slotShas[slot] = sha;
-                if (AssetDigest(latest, slot.DllAsset) is { } dd && sha != dd)
+                dllShas[slot.DllAsset] = sha;
+                if (!AssetHash.Matches(p, AssetDigest(latest, slot.DllAsset)))
+                {
+                    if (wasRunning) steam.StartSteam();
                     return (false, string.Format(Resources.Strings.Plugin_Err_VerifyFailed, slot.DllAsset));
+                }
+            }
+            foreach (var (name, p) in companionDlPaths)
+            {
+                string sha = AssetHash.OfFile(p);
+                dllShas[name] = sha;
+                if (!AssetHash.Matches(p, AssetDigest(latest, name)))
+                {
+                    if (wasRunning) steam.StartSteam();
+                    return (false, string.Format(Resources.Strings.Plugin_Err_VerifyFailed, name));
+                }
             }
 
-            // 1) Frontend → %AppData%\ElementGui\plugin (fresh).
-            if (Directory.Exists(FrontendDir)) Directory.Delete(FrontendDir, recursive: true);
-            Directory.CreateDirectory(FrontendDir);
-            ZipFile.ExtractToDirectory(zipPath, FrontendDir);
-            NormalizeFrontendLayout();
-            if (!File.Exists(LuatoolsJsPath))
-                return (false, Resources.Strings.Plugin_Err_NoLuatoolsJs);
+            // 1) Frontend → %AppData%\ElementGui\plugin (fresh). Skipped entirely when the
+            // release carries no frontend (Core-only releases): the store-page button lives
+            // in the Core DLL itself.
+            if (zipPath is not null)
+            {
+                if (Directory.Exists(FrontendDir)) Directory.Delete(FrontendDir, recursive: true);
+                Directory.CreateDirectory(FrontendDir);
+                ZipFile.ExtractToDirectory(zipPath, FrontendDir);
+                NormalizeFrontendLayout();
+                if (!File.Exists(LuatoolsJsPath))
+                    return (false, Resources.Strings.Plugin_Err_NoLuatoolsJs);
 
-            // Get the frontend live in THIS running process immediately. Don't wait on the Steam restart
-            // below. A relaunched LuaTools.exe would hit the single-instance mutex against this very
-            // process (the one the user is using right now to click Install) and exit quietly without ever
-            // taking over, so nothing would otherwise pick up the new file until a manual app restart.
-            await injector.ReloadPluginFilesAsync();
+                // Get the frontend live in THIS running process immediately. Don't wait on the Steam restart
+                // below. A relaunched LuaTools.exe would hit the single-instance mutex against this very
+                // process (the one the user is using right now to click Install) and exit quietly without ever
+                // taking over, so nothing would otherwise pick up the new file until a manual app restart.
+                await injector.ReloadPluginFilesAsync();
+            }
 
             // 2) Loader DLLs → Steam root, but ONLY when at least one slot actually changed, OR a legacy
             //    slot is still present and must be removed. Both slots are always installed/updated
-            //    together (never partially out of date relative to each other). The DLLs are locked while
-            //    Steam runs, so either condition means stopping+restarting Steam; a frontend-only update
-            //    (the common case) skips all of that and applies with zero Steam disruption.
+            //    together (never partially out of date relative to each other). Steam is already stopped
+            //    at the top of this method, so just copy files.
             // Testing switch: when `.luatools-dll-update-disabled` is present, never touch any on-disk DLL
-            // (so hand-placed test builds aren't clobbered), and thus never stop/restart Steam for it either.
+            // (so hand-placed test builds aren't clobbered).
             bool legacyPresent = LegacyDllPaths.Any(File.Exists);
             bool anySlotNeedsUpdate = Slots.Any(slot =>
                 SlotPath(slot) is not { } cur || !File.Exists(cur) || AssetHash.OfFile(cur) != slotShas[slot]);
-            bool dllNeedsUpdate = !DllUpdateDisabled && (anySlotNeedsUpdate || legacyPresent);
+            bool anyCompanionNeedsUpdate = companionDlPaths.Any(kv =>
+            {
+                string dest = Path.Combine(steamDir, kv.Key);
+                return !File.Exists(dest) || !dllShas.TryGetValue(kv.Key, out string? want) || AssetHash.OfFile(dest) != want;
+            });
+            bool dllNeedsUpdate = !DllUpdateDisabled && (anySlotNeedsUpdate || anyCompanionNeedsUpdate || legacyPresent);
             if (dllNeedsUpdate)
             {
-                bool wasRunning = Process.GetProcessesByName("steam").Length > 0;
-                steam.StopSteam();
-                await Task.Delay(1200, ct); // let file handles on the loader DLLs release after the kill
-
                 foreach (var slot in Slots)
                 {
                     File.Copy(slotDlPaths[slot], Path.Combine(steamDir, slot.DllAsset), overwrite: true);
@@ -381,6 +477,8 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
                     if (SlotRealPath(slot) is { } real && File.Exists(slot.SystemSourcePath))
                         File.Copy(slot.SystemSourcePath, real, overwrite: true);
                 }
+                foreach (var (name, staged) in companionDlPaths)
+                    File.Copy(staged, Path.Combine(steamDir, name), overwrite: true);
                 // Remove any legacy slot (psapi/dbghelp + their _real). Leaving one would run the loader
                 // payload an extra time (double LuaTools launch / CDP hook).
                 foreach (var legacy in LegacyDllPaths)
@@ -395,8 +493,6 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
                     RestoreMillenniumPluginFolder(steamDir);
                     disabledMillenniumEntries = SetMillenniumLuatoolsEnabled(enable: false);
                 }
-
-                if (wasRunning) steam.StartSteam();
             }
 
             // Ensure the CDP marker junction exists: independent of whether the DLL itself changed (a
@@ -410,13 +506,21 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
             WriteManifest(new Manifest
             {
                 Tag = latest.TagName,
-                DllShas = slotShas.ToDictionary(kv => kv.Key.DllAsset, kv => kv.Value),
+                DllShas = dllShas,
                 ZipSha = zipSha,
                 DisabledMillenniumEntries = disabledMillenniumEntries,
             });
+
+            // Restart Steam (it was stopped at the top of this method).
+            if (wasRunning) steam.StartSteam();
+
             return (true, null);
         }
-        catch (Exception ex) { return (false, ex.Message); }
+        catch (Exception ex)
+        {
+            if (wasRunning) steam.StartSteam();
+            return (false, ex.Message);
+        }
         finally { try { Directory.Delete(tmp, recursive: true); } catch { /* temp cleanup */ } }
     }
 
@@ -457,7 +561,7 @@ public class PluginInstallerService(SteamService steam, GithubProxy gh, CefInjec
                 }
                 foreach (var legacy in LegacyDllPaths)
                     if (File.Exists(legacy)) File.Delete(legacy);
-                if (CdpMarkerPath is { } markerPath) RemoveCdpMarkerJunction(markerPath);
+        if (CdpMarkerPath is { } oldMarkerPath) RemoveCdpMarkerJunction(oldMarkerPath);
                 if (Directory.Exists(FrontendDir)) Directory.Delete(FrontendDir, recursive: true);
 
                 // Give Millennium its luatools plugin back: we're the ones who disabled it. Steam is

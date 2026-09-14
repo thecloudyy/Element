@@ -20,13 +20,11 @@ public partial class HomeViewModel : ObservableObject
     public Action? NavigateToPlugin { get; set; }
     public Action? NavigateToManage { get; set; }
     public Action? NavigateToSettings { get; set; }
-    public Action? NavigateToMode { get; set; }
 
     private readonly SteamService _steam;
     private readonly SteamAppListCache _appList;
     private readonly SteamAppInfoCache _appInfo;
     private readonly CoverCache _covers;
-    private readonly UnlockerService _unlocker;
     private readonly PluginInstallerService _plugin;
     private readonly ToastService _toast;
 
@@ -54,24 +52,18 @@ public partial class HomeViewModel : ObservableObject
 
     public bool HasRecent => Recent.Count > 0;
 
-    // ── Steam + account status ──────────────────────────────────────
+    // ── Steam status ──────────────────────────────────────────────
     [ObservableProperty] private bool _steamFound;
     [ObservableProperty] private string _steamStatus = Resources.Strings.Home_CheckingSteam;
 
-    [ObservableProperty] private string _accountStatus = Resources.Strings.Home_BrowsingAsGuest;
-
-    // ── Active unlocker mode ────────────────────────────────────────
-    [ObservableProperty] private string _modeStatus = Resources.Strings.Home_NoModeSelected;
-
     public HomeViewModel(SteamService steam,
         SteamAppListCache appList, SteamAppInfoCache appInfo, CoverCache covers, DropInstallViewModel drop,
-        UnlockerService unlocker, PluginInstallerService plugin, ToastService toast)
+        PluginInstallerService plugin, ToastService toast)
     {
         _steam = steam;
         _appList = appList;
         _appInfo = appInfo;
         _covers = covers;
-        _unlocker = unlocker;
         _plugin = plugin;
         _toast = toast;
         Drop = drop;
@@ -87,7 +79,6 @@ public partial class HomeViewModel : ObservableObject
     [RelayCommand] private void OpenPlugin() => NavigateToPlugin?.Invoke();
     [RelayCommand] private void OpenManage() => NavigateToManage?.Invoke();
     [RelayCommand] private void OpenSettings() => NavigateToSettings?.Invoke();
-    [RelayCommand] private void OpenMode() => NavigateToMode?.Invoke();
 
     /// <summary>Inline install of the store-page plugin from the Home tile (mirrors PluginViewModel.Install):
     /// confirm the Steam restart, install, toast the outcome, then refresh the tile.</summary>
@@ -123,7 +114,6 @@ public partial class HomeViewModel : ObservableObject
     public async Task LoadAsync()
     {
         RefreshSteam();
-        RefreshMode();
         _ = RefreshPluginStatusAsync(); // fire-and-forget: may hit GitHub, must not delay the page
         await RefreshLibraryAsync();
     }
@@ -134,7 +124,7 @@ public partial class HomeViewModel : ObservableObject
         try
         {
             var st = await _plugin.GetStatusAsync(force: false);
-            bool installed = st.FrontendInstalled && st.DllInstalled;
+            bool installed = st.CoreInstalled;
             ShowPluginInstall = !installed;
             (PluginStatusText, PluginStatusColor) =
                 !installed         ? (Resources.Strings.Plugin_Status_NotInstalled,   "#9ca3af")
@@ -145,11 +135,6 @@ public partial class HomeViewModel : ObservableObject
         }
         catch { /* leave the prior value (e.g. "Checking…") on any failure */ }
     }
-
-    private void RefreshMode() =>
-        ModeStatus = _unlocker.SelectedModeDisplayName is { } name
-            ? string.Format(Resources.Strings.Home_ModeIs, name)
-            : Resources.Strings.Home_NoModeSelected;
 
     private void RefreshSteam()
     {

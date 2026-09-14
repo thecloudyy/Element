@@ -45,6 +45,15 @@ public class InverseBoolToVisibilityConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+public class InverseBoolConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is true ? false : true;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is true ? false : true;
+}
+
 public class NullToCollapsedConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>

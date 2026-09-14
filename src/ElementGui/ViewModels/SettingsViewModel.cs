@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ElementGui.Services;
@@ -12,10 +13,14 @@ namespace ElementGui.ViewModels;
 /// "follow the system display language".</summary>
 public record LanguageOption(string Display, string? Tag);
 
+/// <summary>Which API the "Add with Element" store button uses. Hubcap first (default).</summary>
+public record ButtonModeOption(string Display, string Tag);
+
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly SettingsService _settings;
     private readonly SteamService _steam;
+    private readonly ToastService _toast;
 
     // ── Steam location ──────────────────────────────────────────────
     [ObservableProperty] private string _steamPath = "";
@@ -28,6 +33,113 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _autoUpdateApps;
 
     partial void OnAutoUpdateAppsChanged(bool value) => _settings.AutoUpdateApps = value;
+
+    // ── Built-in button mode ────────────────────────────────────────
+    /// <summary>Which API the "Add with Element" store button uses. Hubcap first (default).</summary>
+    public ObservableCollection<ButtonModeOption> ButtonModeOptions { get; } =
+    [
+        new("Hubcap", "Hubcap"),
+        new("Ryuu", "Ryuu"),
+    ];
+
+    [ObservableProperty] private ButtonModeOption _selectedButtonMode = null!;
+
+    partial void OnSelectedButtonModeChanged(ButtonModeOption value)
+    {
+        if (value is null) return;
+        _settings.BuiltInButtonMode = value.Tag;
+        // The button mode applies on next launch: changing it requires a restart,
+        // same flow as a language change.
+        RequestButtonModeRestartPrompt?.Invoke();
+    }
+
+    /// <summary>Show the "button mode changed. Restart Steam now?" toast. Wired in App like the language prompt.</summary>
+    public Action? RequestButtonModeRestartPrompt { get; set; }
+
+    /// <summary>
+    /// Restart Steam so the new Built-In Button Mode takes effect where it matters
+    /// (the module + Steam side). Runs off the UI thread: the kill waits on exit.
+    /// </summary>
+    [RelayCommand]
+    private async Task RestartSteamForButtonMode()
+    {
+        await Task.Run(() => _steam.RestartSteam());
+    }
+
+    // ── Block Steam updates (steam.cfg) ────────────────────────────
+    [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] private bool _blockSteamUpdates;
+
+    /// <summary>Show the "steam.cfg changed. Restart Steam now?" toast. Wired in App like the button mode prompt.</summary>
+    public Action<bool>? RequestSteamCfgRestartPrompt { get; set; }
+
+    partial void OnBlockSteamUpdatesChanged(bool value)
+    {
+        _settings.BlockSteamUpdates = value;
+        try
+        {
+            string? steamDir = _steam.EffectivePath;
+            if (steamDir is null) return;
+            string cfgPath = Path.Combine(steamDir, "steam.cfg");
+            if (value)
+                File.WriteAllText(cfgPath, "BootStrapperInhibitAll=Enable" + Environment.NewLine);
+            else if (File.Exists(cfgPath))
+                File.Delete(cfgPath);
+            RequestSteamCfgRestartPrompt?.Invoke(value);
+        }
+        catch { /* write failed — setting is still saved */ }
+    }
+
+    [RelayCommand]
+    private async Task CleanSteamCache()
+    {
+        if (IsBusy) return;
+
+        var confirm = System.Windows.MessageBox.Show(
+            Resources.Strings.Settings_CleanSteamCache_Confirm,
+            Resources.Strings.Settings_CleanSteamCache,
+            System.Windows.MessageBoxButton.OKCancel,
+            System.Windows.MessageBoxImage.Warning);
+        if (confirm != System.Windows.MessageBoxResult.OK) return;
+
+        string? steamDir = _steam.EffectivePath;
+        if (steamDir is null) return;
+
+        IsBusy = true;
+        try
+        {
+            _toast.Show(Resources.Strings.Settings_CleanSteamCache, Resources.Strings.SteamCache_Cleaning_Body);
+
+            bool wasRunning = Process.GetProcessesByName("steam").Length > 0;
+            await Task.Run(() => _steam.StopSteam());
+            await Task.Delay(1500);
+
+            string[] cacheFolders = ["appcache", "depotcache", "htmlcache", "librarycache", "logs", "shadercache", "downloads"];
+            foreach (string folder in cacheFolders)
+            {
+                string path = Path.Combine(steamDir, folder);
+                try { if (Directory.Exists(path)) Directory.Delete(path, recursive: true); } catch { }
+            }
+            // userdata/*/local
+            string userdataPath = Path.Combine(steamDir, "userdata");
+            if (Directory.Exists(userdataPath))
+            {
+                foreach (string userDir in Directory.GetDirectories(userdataPath))
+                {
+                    string localPath = Path.Combine(userDir, "local");
+                    try { if (Directory.Exists(localPath)) Directory.Delete(localPath, recursive: true); } catch { }
+                }
+            }
+
+            if (wasRunning) await Task.Run(() => _steam.StartSteam());
+
+            _toast.Show(Resources.Strings.SteamCache_Cleaned_Title, Resources.Strings.SteamCache_Cleaned_Body);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
 
     // ── Startup behavior ────────────────────────────────────────────
     private const string RunKeyPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
@@ -96,20 +208,27 @@ public partial class SettingsViewModel : ObservableObject
     /// App provides the toast + restart action.</summary>
     public Action? RequestRestartPrompt { get; set; }
 
-    public SettingsViewModel(SettingsService settings, SteamService steam)
+    public SettingsViewModel(SettingsService settings, SteamService steam, ToastService toast)
     {
         _settings = settings;
         _steam = steam;
-        RefreshAccount();
+        _toast = toast;
         RefreshSteam();
         _autoUpdateApps = settings.AutoUpdateApps; // init from saved value (default ON) without triggering Save
         _startWithWindows = settings.StartWithWindows; // default OFF. Init without triggering the registry write
         _minimizeToTray = settings.MinimizeToTray;
+        _blockSteamUpdates = settings.BlockSteamUpdates; // default OFF. Init without triggering the cfg write
 
         // Select the saved language (or "System default") without firing the restart prompt.
         _suppressLanguagePrompt = true;
         _selectedLanguage = LanguageOptions.FirstOrDefault(o => o.Tag == settings.Language) ?? LanguageOptions[0];
         _suppressLanguagePrompt = false;
+
+        // Select the saved button mode (Hubcap default). Field init: the change handler
+        // only writes settings, so firing it here would be harmless, but direct init is exact.
+        _selectedButtonMode = ButtonModeOptions.FirstOrDefault(o =>
+            string.Equals(o.Tag, settings.BuiltInButtonMode, StringComparison.OrdinalIgnoreCase))
+            ?? ButtonModeOptions[0];
     }
 
     private void RefreshSteam()
@@ -121,10 +240,6 @@ public partial class SettingsViewModel : ObservableObject
             : path is null ? Resources.Strings.Settings_SteamSource_NotFound
             : Resources.Strings.Settings_SteamSource_Auto;
         SteamWarning = path is not null && !_steam.IsValid ? Resources.Strings.Settings_SteamWarning_NoExe : null;
-    }
-
-    public void RefreshAccount()
-    {
     }
 
     [RelayCommand]
@@ -160,9 +275,6 @@ public partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void OpenWebsite() =>
         Process.Start(new ProcessStartInfo(AppConfig.ApiBaseUrl) { UseShellExecute = true });
-
-    [RelayCommand]
-    private void SignOut() { }
 
     public void OnViewLoaded()
     {

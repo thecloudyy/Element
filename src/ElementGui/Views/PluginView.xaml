@@ -87,6 +87,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <!-- Version -->
@@ -106,22 +107,29 @@
                                 </Border>
                             </StackPanel>
 
-                            <!-- Frontend -->
+                            <!-- manifestdexcore.dll -->
                             <Grid Grid.Row="1" Grid.Column="0" Margin="0,4" VerticalAlignment="Center">
-                                <ui:SymbolIcon FontSize="16" Foreground="#4ade80" Symbol="CheckmarkCircle24" Visibility="{Binding FrontendInstalled, Converter={StaticResource BoolToVis}}" />
-                                <ui:SymbolIcon FontSize="16" Foreground="#7c8593" Symbol="DismissCircle24" Visibility="{Binding FrontendInstalled, Converter={StaticResource InverseBoolToVis}}" />
+                                <ui:SymbolIcon FontSize="16" Foreground="#4ade80" Symbol="CheckmarkCircle24" Visibility="{Binding ManifestdexcoreInstalled, Converter={StaticResource BoolToVis}}" />
+                                <ui:SymbolIcon FontSize="16" Foreground="#7c8593" Symbol="DismissCircle24" Visibility="{Binding ManifestdexcoreInstalled, Converter={StaticResource InverseBoolToVis}}" />
                             </Grid>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,4" VerticalAlignment="Center" FontSize="12.5" Foreground="#7c8593" Text="{x:Static res:Strings.Plugin_Row_Frontend}" />
-                            <TextBlock Grid.Row="1" Grid.Column="2" Margin="0,4" VerticalAlignment="Center" FontSize="12.5" Foreground="#e5e7eb" Text="{Binding FrontendStatus}" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,4" VerticalAlignment="Center" FontSize="12.5" Foreground="#7c8593" Text="{x:Static res:Strings.Plugin_Row_Core}" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Margin="0,4" VerticalAlignment="Center" FontSize="12.5" Foreground="#e5e7eb" Text="{Binding ManifestdexcoreStatus}" />
 
-                            <!-- Loader (winmm.dll) -->
+                            <!-- dwmapi.dll -->
                             <Grid Grid.Row="2" Grid.Column="0" Margin="0,4" VerticalAlignment="Center">
-                                <ui:SymbolIcon FontSize="16" Foreground="#4ade80" Symbol="CheckmarkCircle24" Visibility="{Binding DllOk, Converter={StaticResource BoolToVis}}" />
-                                <ui:SymbolIcon FontSize="16" Foreground="#fbbf24" Symbol="Warning24" Visibility="{Binding DllOutOfDate, Converter={StaticResource BoolToVis}}" />
-                                <ui:SymbolIcon FontSize="16" Foreground="#7c8593" Symbol="DismissCircle24" Visibility="{Binding DllNotInstalled, Converter={StaticResource BoolToVis}}" />
+                                <ui:SymbolIcon FontSize="16" Foreground="#4ade80" Symbol="CheckmarkCircle24" Visibility="{Binding DwmapiInstalled, Converter={StaticResource BoolToVis}}" />
+                                <ui:SymbolIcon FontSize="16" Foreground="#7c8593" Symbol="DismissCircle24" Visibility="{Binding DwmapiInstalled, Converter={StaticResource InverseBoolToVis}}" />
                             </Grid>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,4" VerticalAlignment="Center" FontSize="12.5" Foreground="#7c8593" Text="{x:Static res:Strings.Plugin_Row_Loader}" />
-                            <TextBlock Grid.Row="2" Grid.Column="2" Margin="0,4" VerticalAlignment="Center" FontSize="12.5" Foreground="#e5e7eb" Text="{Binding DllStatus}" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,4" VerticalAlignment="Center" FontSize="12.5" Foreground="#7c8593" Text="{x:Static res:Strings.Plugin_Row_Dwmapi}" />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Margin="0,4" VerticalAlignment="Center" FontSize="12.5" Foreground="#e5e7eb" Text="{Binding DwmapiStatus}" />
+
+                            <!-- xinput1_4.dll -->
+                            <Grid Grid.Row="3" Grid.Column="0" Margin="0,4" VerticalAlignment="Center">
+                                <ui:SymbolIcon FontSize="16" Foreground="#4ade80" Symbol="CheckmarkCircle24" Visibility="{Binding XinputInstalled, Converter={StaticResource BoolToVis}}" />
+                                <ui:SymbolIcon FontSize="16" Foreground="#7c8593" Symbol="DismissCircle24" Visibility="{Binding XinputInstalled, Converter={StaticResource InverseBoolToVis}}" />
+                            </Grid>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,4" VerticalAlignment="Center" FontSize="12.5" Foreground="#7c8593" Text="{x:Static res:Strings.Plugin_Row_Xinput}" />
+                            <TextBlock Grid.Row="3" Grid.Column="2" Margin="0,4" VerticalAlignment="Center" FontSize="12.5" Foreground="#e5e7eb" Text="{Binding XinputStatus}" />
                         </Grid>
 
                         <!-- Millennium coexisting info -->

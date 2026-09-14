@@ -434,6 +434,19 @@
                                             FontSize="13.5"
                                             FontWeight="Medium"
                                             Text="{Binding DisplayName}" />
+                                        <Border
+                                            Margin="6,0,0,0"
+                                            Padding="6,2"
+                                            VerticalAlignment="Center"
+                                            Background="#202563eb"
+                                            CornerRadius="4"
+                                            Visibility="{Binding IsRecommended, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                Foreground="#60a5fa"
+                                                Text="{x:Static res:Strings.Add_Recommended}" />
+                                        </Border>
                                         <ui:SymbolIcon
                                             Margin="6,0,0,0"
                                             FontSize="15"
@@ -451,16 +464,43 @@
                                         Orientation="Horizontal">
                                         <Border
                                             Padding="6,2"
-                                            Background="#1422c55e"
-                                            BorderBrush="#3022c55e"
                                             BorderThickness="1"
                                             CornerRadius="4"
                                             Visibility="{Binding StatsText, Converter={StaticResource NullToCollapsed}}">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#1422c55e" />
+                                                    <Setter Property="BorderBrush" Value="#3022c55e" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding UsageLevel}" Value="1">
+                                                            <Setter Property="Background" Value="#20f59e0b" />
+                                                            <Setter Property="BorderBrush" Value="#40f59e0b" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding UsageLevel}" Value="2">
+                                                            <Setter Property="Background" Value="#20f87171" />
+                                                            <Setter Property="BorderBrush" Value="#40f87171" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <TextBlock
                                                 FontSize="11"
                                                 FontWeight="SemiBold"
-                                                Foreground="#22c55e"
-                                                Text="{Binding StatsText}" />
+                                                Text="{Binding StatsText}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="#22c55e" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding UsageLevel}" Value="1">
+                                                                <Setter Property="Foreground" Value="#fbbf24" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding UsageLevel}" Value="2">
+                                                                <Setter Property="Foreground" Value="#f87171" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                         </Border>
                                         <Border
                                             Margin="4,0,0,0"
@@ -516,7 +556,8 @@
                                         VerticalAlignment="Center"
                                         FontSize="11.5"
                                         Foreground="#a78bfa"
-                                        Text="Requires key"
+                                        Text="{x:Static res:Strings.Add_NeedsHubcapKey}"
+                                        ToolTip="{x:Static res:Strings.Add_NeedsHubcapKey_Tip}"
                                         Visibility="{Binding IsLocked, Converter={StaticResource BoolToVis}}" />
                                 </Grid>
 

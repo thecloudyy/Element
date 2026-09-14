@@ -63,25 +63,17 @@
   <data name="Nav_Home" xml:space="preserve"><value>Inicio</value></data>
   <data name="Nav_Add" xml:space="preserve"><value>Añadir</value></data>
   <data name="Nav_Manage" xml:space="preserve"><value>Gestionar</value></data>
-  <data name="Nav_Mode" xml:space="preserve"><value>Modo</value></data>
   <data name="Nav_Fixes" xml:space="preserve"><value>Parches</value></data>
   <data name="Nav_RestartSteam" xml:space="preserve"><value>Reiniciar Steam</value></data>
   <data name="Nav_Settings" xml:space="preserve"><value>Ajustes</value></data>
-  <data name="Nav_SignInDiscord" xml:space="preserve"><value>Element</value></data>
-  <data name="Nav_WaitingForBrowser" xml:space="preserve"><value>Esperando al navegador…</value></data>
-  <data name="Nav_Footer_Guest" xml:space="preserve"><value>Navegando como invitado</value></data>
-  <data name="Nav_Footer_LoggedIn" xml:space="preserve"><value>Sesión iniciada</value></data>
+<data name="Nav_WaitingForBrowser" xml:space="preserve"><value>Esperando al navegador…</value></data>
+<data name="Nav_Footer_LoggedIn" xml:space="preserve"><value>Sesión iniciada</value></data>
   <data name="Main_RestartSteam_Ask" xml:space="preserve"><value>¿Reiniciar Steam ahora? Esto cierra Steam y cualquier juego en ejecución, y luego lo vuelve a abrir.</value></data>
   <data name="Settings_Title" xml:space="preserve"><value>Ajustes</value></data>
-  <data name="Settings_Section_Account" xml:space="preserve"><value>CUENTA</value></data>
-  <data name="Settings_Section_General" xml:space="preserve"><value>GENERAL</value></data>
+<data name="Settings_Section_General" xml:space="preserve"><value>GENERAL</value></data>
   <data name="Settings_Section_Steam" xml:space="preserve"><value>STEAM</value></data>
   <data name="Settings_Section_Install" xml:space="preserve"><value>INSTALACIÓN</value></data>
   <data name="Settings_Section_Community" xml:space="preserve"><value>COMUNIDAD</value></data>
-  <data name="Settings_SignOut" xml:space="preserve"><value>Cerrar sesión</value></data>
-  <data name="Settings_BrowsingAsGuest" xml:space="preserve"><value>Navegando como invitado</value></data>
-  <data name="Settings_GuestHint" xml:space="preserve"><value>Inicia sesión para descargar manifiestos y desbloqueos de DLC</value></data>
-  <data name="Settings_SignInDiscord" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotCode_Hint" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotCode_Placeholder" xml:space="preserve"><value>A3X9K2</value></data>
   <data name="Settings_BotCode_Redeem" xml:space="preserve"><value>Canjear</value></data>
@@ -91,21 +83,6 @@
   <data name="Settings_BotLink_Title" xml:space="preserve"><value>Termina de vincular tu cuenta</value></data>
   <data name="Settings_BotLink_Body" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotLink_Dismiss" xml:space="preserve"><value>Descartar</value></data>
-  <data name="Settings_LoginRequired" xml:space="preserve"><value>Es necesario iniciar sesión para esta acción.</value></data>
-  <data name="Settings_ManageKeyHintPrefix" xml:space="preserve"><value>Gestiona tu clave de API de Hubcap y tu perfil en</value></data>
-  <data name="Settings_Section_Hubcap" xml:space="preserve"><value>HUBCAP</value></data>
-  <data name="Settings_HubcapKey" xml:space="preserve"><value>Clave de API de Hubcap</value></data>
-  <data name="Settings_HubcapKey_Hint" xml:space="preserve"><value>Pega tu clave de API de Hubcap personal para desbloquear los manifiestos de Hubcap. La aplicación se conecta a Hubcap directamente con tu clave.</value></data>
-  <data name="Settings_HubcapKeyPlaceholder" xml:space="preserve"><value>Pega tu clave de API (smm_…)</value></data>
-  <data name="Settings_HubcapValidate" xml:space="preserve"><value>Validar y guardar</value></data>
-  <data name="Settings_HubcapClear" xml:space="preserve"><value>Borrar</value></data>
-  <data name="Settings_HubcapGetKey" xml:space="preserve"><value>Consigue una clave en</value></data>
-  <data name="Settings_HubcapKeyOk" xml:space="preserve"><value>{0}/{1} solicitudes hoy</value></data>
-  <data name="Settings_HubcapKeyOkExpiry" xml:space="preserve"><value>{0}/{1} hoy · caduca {2}</value></data>
-  <data name="Settings_HubcapKeyBad" xml:space="preserve"><value>Esto no parece una clave válida (smm_…).</value></data>
-  <data name="Settings_HubcapKeyError" xml:space="preserve"><value>No se pudo verificar la clave: puede ser inválida, estar caducada o Hubcap no está disponible.</value></data>
-  <data name="Settings_HubcapActive" xml:space="preserve"><value>Activo</value></data>
-  <data name="Settings_HubcapRefresh" xml:space="preserve"><value>Actualizar</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Idioma</value></data>
   <data name="Settings_Language_Hint" xml:space="preserve"><value>Elige el idioma de la aplicación. Se aplica tras reiniciar.</value></data>
   <data name="Settings_Language_SystemDefault" xml:space="preserve"><value>Predeterminado del sistema</value></data>
@@ -115,6 +92,8 @@
   <data name="Settings_ResetToAuto" xml:space="preserve"><value>Restablecer a automático</value></data>
   <data name="Settings_AutoUpdateApps" xml:space="preserve"><value>Actualizar apps automáticamente (no bloquear manifiestos)</value></data>
   <data name="Settings_AutoUpdateApps_Hint" xml:space="preserve"><value>Instala sin fijar una versión, para que Steam mantenga los juegos actualizados. Desactívalo para bloquear los juegos en la versión descargada.</value></data>
+  <data name="Settings_BuiltInButtonMode" xml:space="preserve"><value>Modo del botón integrado</value></data>
+  <data name="Settings_BuiltInButtonMode_Hint" xml:space="preserve"><value>Qué API usa el botón «Add with Element» de la tienda. Hubcap es lo recomendado.</value></data>
   <data name="Settings_DonateKeys" xml:space="preserve"><value>Donar claves de descifrado</value></data>
   <data name="Settings_DonateKeys_Hint" xml:space="preserve"><value>Comparte las claves de descifrado de depósitos de Steam que te sobren para ampliar el grupo comunitario. Solo se envían claves validadas: sin información de cuenta ni datos personales.</value></data>
   <data name="Settings_SteamNotFound" xml:space="preserve"><value>Steam no encontrado</value></data>
@@ -126,6 +105,81 @@
   <data name="Lang_Changed_Title" xml:space="preserve"><value>Idioma cambiado</value></data>
   <data name="Lang_Changed_Body" xml:space="preserve"><value>Reinicia la aplicación para aplicar el nuevo idioma.</value></data>
   <data name="Lang_Changed_Restart" xml:space="preserve"><value>Reiniciar ahora</value></data>
+  <data name="ButtonMode_Changed_Title" xml:space="preserve"><value>Modo de botón cambiado</value></data>
+  <data name="ButtonMode_Changed_Body" xml:space="preserve"><value>Reinicia Steam para aplicar el nuevo modo del botón integrado.</value></data>
+  <data name="Settings_BlockSteamUpdates" xml:space="preserve"><value>Bloquear actualizaciones automáticas de Steam</value></data>
+  <data name="Settings_BlockSteamUpdates_Hint" xml:space="preserve"><value>Escribe BootStrapperInhibitAll=Enable en steam.cfg para evitar que Steam actualice los juegos automáticamente. Requiere reiniciar Steam para que surta efecto.</value></data>
+  <data name="SteamCfg_Changed_Title" xml:space="preserve"><value>Actualizaciones de Steam bloqueadas</value></data>
+  <data name="SteamCfg_Changed_Body" xml:space="preserve"><value>Reinicia Steam para que el bloqueo de actualizaciones surta efecto.</value></data>
+  <data name="SteamCfg_Removed_Title" xml:space="preserve"><value>Actualizaciones de Steam desbloqueadas</value></data>
+  <data name="SteamCfg_Removed_Body" xml:space="preserve"><value>Reinicia Steam para que el cambio surta efecto.</value></data>
+  <data name="Settings_CleanSteamCache" xml:space="preserve"><value>Limpiar caché de Steam</value></data>
+  <data name="Settings_CleanSteamCache_Hint" xml:space="preserve"><value>Elimina appcache, depotcache, htmlcache, librarycache, logs, shadercache, downloads y archivos temporales de userdata. Steam se reiniciará.</value></data>
+  <data name="Settings_CleanSteamCache_Btn" xml:space="preserve"><value>Limpiar</value></data>
+  <data name="Settings_CleanSteamCache_Confirm" xml:space="preserve"><value>Esto limpiará la caché de Steam y reiniciará Steam completamente. ¿Continuar?</value></data>
+  <data name="SteamCache_Cleaned_Title" xml:space="preserve"><value>Caché de Steam limpiada</value></data>
+  <data name="SteamCache_Cleaned_Body" xml:space="preserve"><value>Todas las carpetas de caché eliminadas. Steam se ha reiniciado.</value></data>
+  <data name="SteamCache_Cleaning_Body" xml:space="preserve"><value>Limpiando carpetas de caché. Steam se reiniciará…</value></data>
+  <data name="Nav_Cloud" xml:space="preserve"><value>Nube</value></data>
+  <data name="Cloud_Title" xml:space="preserve"><value>Nube</value></data>
+  <data name="Cloud_Section_Setup" xml:space="preserve"><value>CONFIGURACIÓN</value></data>
+  <data name="Cloud_Section_General" xml:space="preserve"><value>GENERAL</value></data>
+  <data name="Cloud_Section_Provider" xml:space="preserve"><value>PROVEEDOR DE NUBE</value></data>
+  <data name="Cloud_Section_Status" xml:space="preserve"><value>ESTADO</value></data>
+  <data name="Cloud_Section_LocalFolder" xml:space="preserve"><value>CARPETA LOCAL</value></data>
+  <data name="Cloud_DllStatus" xml:space="preserve"><value>CloudRedirect DLL</value></data>
+  <data name="Cloud_Install" xml:space="preserve"><value>Instalar</value></data>
+  <data name="Cloud_Uninstall" xml:space="preserve"><value>Desinstalar</value></data>
+  <data name="Cloud_Installed" xml:space="preserve"><value>Instalado</value></data>
+  <data name="Cloud_NotInstalled" xml:space="preserve"><value>No instalado</value></data>
+  <data name="Cloud_SteamNotFound" xml:space="preserve"><value>Steam no encontrado</value></data>
+  <data name="Cloud_Enabled" xml:space="preserve"><value>Habilitar redirección de nube</value></data>
+  <data name="Cloud_Enabled_Hint" xml:space="preserve"><value>Redirigir los guardados de Steam Cloud de juegos lua a tu proveedor de nube.</value></data>
+  <data name="Cloud_AutoSync" xml:space="preserve"><value>Sincronizar automáticamente al salir</value></data>
+  <data name="Cloud_AutoSync_Hint" xml:space="preserve"><value>Subir guardados automáticamente al cerrar un juego.</value></data>
+  <data name="Cloud_Provider" xml:space="preserve"><value>Proveedor de nube</value></data>
+  <data name="Cloud_Provider_Hint" xml:space="preserve"><value>Selecciona dónde almacenar tus guardados en la nube.</value></data>
+  <data name="Cloud_Path" xml:space="preserve"><value>Ruta del proveedor</value></data>
+  <data name="Cloud_Path_Hint" xml:space="preserve"><value>Subcarpeta opcional dentro de tu almacenamiento en la nube.</value></data>
+  <data name="Cloud_Path_Placeholder" xml:space="preserve"><value>guardados-steam</value></data>
+  <data name="Cloud_LocalPath" xml:space="preserve"><value>Carpeta local</value></data>
+  <data name="Cloud_LocalPath_Hint" xml:space="preserve"><value>Selecciona una carpeta local o unidad mapeada como almacenamiento en la nube.</value></data>
+  <data name="Cloud_S3Endpoint" xml:space="preserve"><value>Endpoint S3</value></data>
+  <data name="Cloud_S3Endpoint_Hint" xml:space="preserve"><value>La URL del endpoint compatible con S3.</value></data>
+  <data name="Cloud_S3Bucket" xml:space="preserve"><value>Nombre del bucket</value></data>
+  <data name="Cloud_S3Bucket_Hint" xml:space="preserve"><value>El bucket donde almacenar los guardados.</value></data>
+  <data name="Cloud_S3AccessKey" xml:space="preserve"><value>Clave de acceso</value></data>
+  <data name="Cloud_S3SecretKey" xml:space="preserve"><value>Clave secreta</value></data>
+  <data name="Cloud_S3Prefix" xml:space="preserve"><value>Prefijo de claves</value></data>
+  <data name="Cloud_S3Prefix_Hint" xml:space="preserve"><value>Prefijo opcional para todas las claves del bucket.</value></data>
+  <data name="Cloud_SelectFolder" xml:space="preserve"><value>Seleccionar carpeta</value></data>
+  <data name="Cloud_Status" xml:space="preserve"><value>Estado de conexión</value></data>
+  <data name="Cloud_Check" xml:space="preserve"><value>Comprobar</value></data>
+  <data name="Cloud_Status_Checking" xml:space="preserve"><value>Comprobando…</value></data>
+  <data name="Cloud_Status_Connected" xml:space="preserve"><value>Conectado ({0})</value></data>
+  <data name="Cloud_Status_Failed" xml:space="preserve"><value>Error (HTTP {0})</value></data>
+  <data name="Cloud_Status_Timeout" xml:space="preserve"><value>Tiempo de conexión agotado</value></data>
+  <data name="Cloud_Status_Unreachable" xml:space="preserve"><value>Servidor inalcanzable</value></data>
+  <data name="Cloud_Status_Ready" xml:space="preserve"><value>Listo — inicia sesión en la aplicación complementaria</value></data>
+  <data name="Cloud_Status_LocalOk" xml:space="preserve"><value>La carpeta existe y es accesible</value></data>
+  <data name="Cloud_Status_PathNotFound" xml:space="preserve"><value>Carpeta no encontrada</value></data>
+  <data name="Cloud_Status_MissingConfig" xml:space="preserve"><value>El endpoint y el bucket son obligatorios</value></data>
+  <data name="Cloud_Log_SteamNotFound" xml:space="preserve"><value>Ruta de Steam no encontrada. Configura la ruta en Ajustes.</value></data>
+  <data name="Cloud_Log_SteamPath" xml:space="preserve"><value>Ruta de Steam: {0}</value></data>
+  <data name="Cloud_Log_CheckingRelease" xml:space="preserve"><value>Buscando última versión de CloudRedirect…</value></data>
+  <data name="Cloud_Log_LatestVersion" xml:space="preserve"><value>Última versión: {0}</value></data>
+  <data name="Cloud_Log_ReleaseFailed" xml:space="preserve"><value>Error al obtener la última versión.</value></data>
+  <data name="Cloud_Log_DllNotFound" xml:space="preserve"><value>cloud_redirect.dll no encontrado en los recursos.</value></data>
+  <data name="Cloud_Log_Downloading" xml:space="preserve"><value>Descargando {0}…</value></data>
+  <data name="Cloud_Log_Downloaded" xml:space="preserve"><value>Descargado {0} bytes.</value></data>
+  <data name="Cloud_Log_StoppingSteam" xml:space="preserve"><value>Deteniendo Steam…</value></data>
+  <data name="Cloud_Log_RestartingSteam" xml:space="preserve"><value>Reiniciando Steam…</value></data>
+  <data name="Cloud_Log_Deployed" xml:space="preserve"><value>Desplegado en {0}</value></data>
+  <data name="Cloud_Log_Done" xml:space="preserve"><value>Instalación completa.</value></data>
+  <data name="Cloud_Log_Error" xml:space="preserve"><value>Error durante la instalación.</value></data>
+  <data name="Cloud_Log_DllAlreadyRemoved" xml:space="preserve"><value>DLL ya eliminado.</value></data>
+  <data name="Cloud_Log_Removed" xml:space="preserve"><value>Eliminado {0}</value></data>
+  <data name="Cloud_Log_UninstallDone" xml:space="preserve"><value>Desinstalación completa.</value></data>
   <data name="Home_Welcome" xml:space="preserve"><value>Bienvenido a Element</value></data>
   <data name="Home_LuasOnBoard" xml:space="preserve"><value>Luas a bordo</value></data>
   <data name="Home_LastAdded" xml:space="preserve"><value>ÚLTIMO AÑADIDO</value></data>
@@ -135,41 +189,13 @@
   <data name="Home_CheckingSteam" xml:space="preserve"><value>Comprobando Steam…</value></data>
   <data name="Home_SteamDetected" xml:space="preserve"><value>Steam detectado · {0}</value></data>
   <data name="Home_SteamNotFound" xml:space="preserve"><value>Steam no encontrado: define su ubicación en Ajustes.</value></data>
-  <data name="Home_BrowsingAsGuest" xml:space="preserve"><value>Navegando como invitado</value></data>
-  <data name="Home_SignedIn" xml:space="preserve"><value>Sesión iniciada</value></data>
+<data name="Home_SignedIn" xml:space="preserve"><value>Sesión iniciada</value></data>
   <data name="Home_SignedInAs" xml:space="preserve"><value>Sesión iniciada como {0}</value></data>
-  <data name="Home_NoModeSelected" xml:space="preserve"><value>Ningún modo seleccionado</value></data>
-  <data name="Home_ModeIs" xml:space="preserve"><value>Modo · {0}</value></data>
-  <data name="Mode_Title" xml:space="preserve"><value>Modo</value></data>
-  <data name="Mode_Subtitle" xml:space="preserve"><value>Cambia el backend usado para desbloquear los juegos añadidos con Element: solo uno activo a la vez.</value></data>
-  <data name="Mode_CheckForUpdates" xml:space="preserve"><value>Buscar actualizaciones</value></data>
-  <data name="Mode_Active" xml:space="preserve"><value>ACTIVO</value></data>
-  <data name="Mode_Recommended" xml:space="preserve"><value>RECOMENDADO</value></data>
-  <data name="Mode_Confirm_Body" xml:space="preserve"><value>Steam se cerrará para poder modificar sus archivos y luego se reiniciará automáticamente. Cualquier juego o descarga en curso se detendrá.</value></data>
   <data name="Mode_Cancel" xml:space="preserve"><value>Cancelar</value></data>
-  <data name="Mode_CloseSteamContinue" xml:space="preserve"><value>Cerrar Steam y continuar</value></data>
-  <data name="Mode_Desc_Element" xml:space="preserve"><value>El hook de Steam de Element, construido desde el código fuente. Proporciona carga de lua, soporte de CloudRedirect y más.</value></data>
-  <data name="Mode_CloudRedirect_Manage" xml:space="preserve"><value>Gestionar</value></data>
-  <data name="Mode_CloudRedirect_LaunchFailed" xml:space="preserve"><value>No se pudo descargar ni iniciar CloudRedirect.</value></data>
-  <data name="Mode_UserManaged" xml:space="preserve"><value>Te las apañas tú</value></data>
   <data name="Mode_Desc_Custom" xml:space="preserve"><value>Usa tu propia solución de desbloqueo, no la tocaremos</value></data>
   <data name="Mode_Name_Custom" xml:space="preserve"><value>Desbloqueador personalizado</value></data>
-  <data name="Mode_Experimental" xml:space="preserve"><value>EXPERIMENTAL</value></data>
-  <data name="Mode_CloudRedirectSupport" xml:space="preserve"><value>COMPATIBLE CON CLOUDREDIRECT</value></data>
-  <data name="Mode_CloudRedirect_AddonDesc" xml:space="preserve"><value>Recupera la compatibilidad nativa con Steam Cloud mediante proveedores de almacenamiento externos como Google Drive / OneDrive / Cloudflare R2 y más. Por ahora, solo es compatible con Element. No olvides configurarlo haciendo clic en "Gestionar" después de activarlo y, luego, reinicia Steam.</value></data>
-  <data name="Mode_CloudRedirect_Locked" xml:space="preserve"><value>Selecciona Element para usar CloudRedirect.</value></data>
-  <data name="Mode_CloudRedirect_Enable" xml:space="preserve"><value>Activar</value></data>
-  <data name="Mode_CloudRedirect_Disable" xml:space="preserve"><value>Desactivar</value></data>
-  <data name="Mode_CloudRedirect_Status_Enabled" xml:space="preserve"><value>Activado.</value></data>
-  <data name="Mode_CloudRedirect_Status_Disabled" xml:space="preserve"><value>Instalado, pero desactivado.</value></data>
-  <data name="Mode_CloudRedirect_Status_NotInstalled" xml:space="preserve"><value>Aún no instalado.</value></data>
-  <data name="Mode_CloudRedirect_Status_UpdateAvailable" xml:space="preserve"><value>Actualización disponible.</value></data>
-  <data name="Mode_CloudRedirect_Toast_Enabled" xml:space="preserve"><value>Activado: reinicia Steam para aplicar.</value></data>
-  <data name="Mode_CloudRedirect_Toast_Disabled" xml:space="preserve"><value>Desactivado: reinicia Steam para aplicar.</value></data>
-  <data name="Mode_CloudRedirect_Toast_Updated" xml:space="preserve"><value>Actualizado: reinicia Steam para aplicar.</value></data>
   <data name="Onboarding_Title" xml:space="preserve"><value>¡Bienvenido a la app Element!</value></data>
-  <data name="Onboarding_SignIn_Blurb" xml:space="preserve"><value>Inicia sesión para desbloquear añadir juegos y arreglos.</value></data>
-  <data name="Onboarding_SignedIn" xml:space="preserve"><value>Sesión iniciada ✓</value></data>
+<data name="Onboarding_SignedIn" xml:space="preserve"><value>Sesión iniciada ✓</value></data>
   <data name="Onboarding_Recommended_Title" xml:space="preserve"><value>Aplicar ajustes recomendados</value></data>
   <data name="Onboarding_Recommended_Detail" xml:space="preserve"><value>Modo: BetterSteamTools · FastFetch activado</value></data>
   <data name="Onboarding_Plugin_Title" xml:space="preserve"><value>Instalar nuestro famoso plugin</value></data>
@@ -178,23 +204,6 @@
   <data name="Onboarding_No" xml:space="preserve"><value>No, gracias</value></data>
   <data name="Onboarding_Go" xml:space="preserve"><value>¡Vamos!</value></data>
   <data name="Onboarding_Applying" xml:space="preserve"><value>Preparando todo…</value></data>
-  <data name="Mode_Checking" xml:space="preserve"><value>Comprobando…</value></data>
-  <data name="Mode_StatusUnavailable" xml:space="preserve"><value>Estado no disponible (¿sin conexión?)</value></data>
-  <data name="Mode_NotActive" xml:space="preserve"><value>No activo</value></data>
-  <data name="Mode_NotInstalled" xml:space="preserve"><value>No instalado</value></data>
-  <data name="Mode_UpToDate" xml:space="preserve"><value>Actualizado</value></data>
-  <data name="Mode_UpdateAvailable" xml:space="preserve"><value>Actualización disponible</value></data>
-  <data name="Mode_Btn_Reinstall" xml:space="preserve"><value>Reinstalar</value></data>
-  <data name="Mode_Btn_Update" xml:space="preserve"><value>Actualizar</value></data>
-  <data name="Mode_Btn_Install" xml:space="preserve"><value>Instalar</value></data>
-  <data name="Mode_Btn_Switch" xml:space="preserve"><value>Cambiar a este</value></data>
-  <data name="Mode_Confirm_Reinstall" xml:space="preserve"><value>¿Reinstalar {0}?</value></data>
-  <data name="Mode_Confirm_Switch" xml:space="preserve"><value>¿Cambiar a {0}?</value></data>
-  <data name="Mode_Toast_Updated" xml:space="preserve"><value>Modo actualizado</value></data>
-  <data name="Mode_Toast_Updated_Restarting" xml:space="preserve"><value>{0} está instalado: Steam se está reiniciando.</value></data>
-  <data name="Mode_Toast_Updated_Start" xml:space="preserve"><value>{0} está instalado. Inicia Steam para usarlo.</value></data>
-  <data name="Mode_Toast_InstallFailed" xml:space="preserve"><value>Error de instalación</value></data>
-  <data name="Mode_Toast_InstallFailed_Body" xml:space="preserve"><value>Algo salió mal.</value></data>
   <data name="Drop_Title" xml:space="preserve"><value>Arrastra aquí archivos .lua, .manifest o .zip</value></data>
   <data name="Drop_BrowseFiles" xml:space="preserve"><value>Examinar archivos…</value></data>
   <data name="Drop_Picker_Title" xml:space="preserve"><value>Elegir archivos .lua / .manifest / .zip</value></data>
@@ -297,8 +306,6 @@ Esto elimina los archivos .lua de Steam\config\stplug-in.</value></data>
   <data name="Fixes_Count" xml:space="preserve"><value>{0} parches</value></data>
   <data name="Fixes_Err_Load" xml:space="preserve"><value>No se pudieron cargar los parches: comprueba tu conexión.</value></data>
   <data name="Fixes_Empty_None" xml:space="preserve"><value>Aún no hay parches disponibles.</value></data>
-  <data name="Fixes_SignIn" xml:space="preserve"><value>Element</value></data>
-  <data name="Fixes_SignInRequired" xml:space="preserve"><value>Se requiere iniciar sesión</value></data>
   <data name="Fixes_Toast_DownloadFailed" xml:space="preserve"><value>Error de descarga</value></data>
   <data name="Fixes_Toast_DownloadFailed_Body" xml:space="preserve"><value>Algo salió mal: inténtalo de nuevo.</value></data>
   <data name="Fixes_Toast_InstallFailed" xml:space="preserve"><value>Error de instalación</value></data>
@@ -340,10 +347,9 @@ Esto elimina los archivos .lua de Steam\config\stplug-in.</value></data>
   <data name="Add_Checking" xml:space="preserve"><value>Comprobando…</value></data>
   <data name="Add_Reveal" xml:space="preserve"><value>Mostrar</value></data>
   <data name="Add_Supporter" xml:space="preserve"><value>Supporter</value></data>
+  <data name="Add_Recommended" xml:space="preserve"><value>RECOMENDADO</value></data>
   <data name="Add_Unlimited" xml:space="preserve"><value>Ilimitado</value></data>
   <data name="Add_RequiresOwnKey" xml:space="preserve"><value>Requiere tu propia clave de API</value></data>
-  <data name="Add_Discord" xml:space="preserve"><value>Element</value></data>
-  <data name="Add_JoinDiscord" xml:space="preserve"><value>Element</value></data>
   <data name="Add_Download" xml:space="preserve"><value>Descargar</value></data>
   <data name="Add_NeedsHubcapKey" xml:space="preserve"><value>Necesita clave de Hubcap</value></data>
   <data name="Add_NeedsHubcapKey_Tip" xml:space="preserve"><value>Define tu clave de API de Hubcap en Ajustes para desbloquear esta fuente</value></data>
@@ -355,8 +361,6 @@ Esto elimina los archivos .lua de Steam\config\stplug-in.</value></data>
   <data name="Add_Generating" xml:space="preserve"><value>Generando…</value></data>
   <data name="Add_DlcHint" xml:space="preserve"><value>Coloca el .lua en steam\config\stplug-in; asegúrate de que el juego base también esté añadido. Cuenta para tu límite diario (25/día).</value></data>
   <data name="Add_AlreadyHaveFiles" xml:space="preserve"><value>¿Ya tienes los archivos?</value></data>
-  <data name="Add_SignIn_Dlc" xml:space="preserve"><value>Element</value></data>
-  <data name="Add_SignIn_Download" xml:space="preserve"><value>Element</value></data>
   <data name="Add_Err_BaseGame" xml:space="preserve"><value>No se pudo determinar el juego base de este DLC</value></data>
   <data name="Add_Err_Generic" xml:space="preserve"><value>Algo salió mal: comprueba tu conexión e inténtalo de nuevo.</value></data>
   <data name="Add_Err_Download" xml:space="preserve"><value>Error de descarga: comprueba tu conexión e inténtalo de nuevo.</value></data>
@@ -391,9 +395,10 @@ Esto elimina los archivos .lua de Steam\config\stplug-in.</value></data>
   <data name="Plugin_Badge_UpdateAvailable" xml:space="preserve"><value>Actualización disponible</value></data>
   <data name="Plugin_Row_InstalledVersion" xml:space="preserve"><value>Versión instalada</value></data>
   <data name="Plugin_Row_LatestVersion" xml:space="preserve"><value>Última versión</value></data>
-  <data name="Plugin_Row_Frontend" xml:space="preserve"><value>Frontend</value></data>
-  <data name="Plugin_Row_Loader" xml:space="preserve"><value>Cargador (winmm.dll)</value></data>
-  <data name="Plugin_Millennium_Coexisting" xml:space="preserve"><value>Millennium detectado: Element se ejecuta junto a él. La instalación desactiva la copia de este complemento propia de Millennium para que solo inyecte LuaLoader.</value></data>
+<data name="Plugin_Row_Core" xml:space="preserve"><value>Core</value></data>
+  <data name="Plugin_Row_Dwmapi" xml:space="preserve"><value>dwmapi.dll</value></data>
+  <data name="Plugin_Row_Xinput" xml:space="preserve"><value>xinput1_4.dll</value></data>
+<data name="Plugin_Millennium_Coexisting" xml:space="preserve"><value>Millennium detectado: Element se ejecuta junto a él. La instalación desactiva la copia de este complemento propia de Millennium para que solo inyecte LuaLoader.</value></data>
   <data name="Plugin_Footer" xml:space="preserve"><value>LuaLoader se instala en tu carpeta de Steam. Esta app funciona como backend: si la cierras desde la bandeja, el plugin dejará de funcionar.</value></data>
   <data name="Plugin_Btn_Install" xml:space="preserve"><value>Instalar</value></data>
   <data name="Plugin_Btn_Update" xml:space="preserve"><value>Actualizar</value></data>
@@ -404,7 +409,6 @@ Esto elimina los archivos .lua de Steam\config\stplug-in.</value></data>
   <data name="Plugin_Status_Installed" xml:space="preserve"><value>Instalado</value></data>
   <data name="Plugin_Status_NotInstalled" xml:space="preserve"><value>No instalado</value></data>
   <data name="Plugin_Status_UpToDate" xml:space="preserve"><value>Actualizado</value></data>
-  <data name="Plugin_Status_OutOfDate" xml:space="preserve"><value>Desactualizado</value></data>
   <data name="Plugin_Version_Unknown" xml:space="preserve"><value>desconocida</value></data>
   <data name="Plugin_Version_Offline" xml:space="preserve"><value>sin conexión</value></data>
   <data name="Plugin_Status_OfflineCheck" xml:space="preserve"><value>No se pudo conectar con GitHub para buscar actualizaciones.</value></data>
@@ -512,7 +516,6 @@ Esto elimina los archivos .lua de Steam\config\stplug-in.</value></data>
   <data name="Launch_Drift_Action" xml:space="preserve"><value>Volver a aplicar</value></data>
   <data name="Err_SteamNotFound" xml:space="preserve"><value>No se encontró la ubicación de Steam. Configúrala en Ajustes.</value></data>
   <data name="Err_GithubUnreachable" xml:space="preserve"><value>No se pudo conectar con GitHub. Comprueba tu conexión e inténtalo de nuevo.</value></data>
-  <data name="Err_UpdateServerUnreachable" xml:space="preserve"><value>No se pudo conectar con el servidor de actualizaciones. Comprueba tu conexión e inténtalo de nuevo.</value></data>
   <data name="Err_Cancelled" xml:space="preserve"><value>Cancelado.</value></data>
   <data name="Err_CancelledByUser" xml:space="preserve"><value>Cancelado por el usuario</value></data>
   <data name="Err_ReleaseMissingDownload" xml:space="preserve"><value>Falta la descarga esperada en la versión.</value></data>
@@ -524,20 +527,9 @@ Esto elimina los archivos .lua de Steam\config\stplug-in.</value></data>
   <data name="Err_WriteFailedFile" xml:space="preserve"><value>No se pudo escribir {0}. Cierra Steam e inténtalo de nuevo.</value></data>
   <data name="Err_OpenDownloadFailed" xml:space="preserve"><value>No se pudo abrir la descarga: {0}</value></data>
   <data name="Err_NoSourceAvailable" xml:space="preserve"><value>No hay ninguna fuente disponible para este juego.</value></data>
-  <data name="Auth_Err_Timeout" xml:space="preserve"><value>Se agotó el tiempo de inicio de sesión. El navegador no respondió.</value></data>
-  <data name="Auth_Err_TokenExchangeFailed" xml:space="preserve"><value>Error en el intercambio de token ({0}): {1}</value></data>
-  <data name="Auth_Err_TokenExchangeEmpty" xml:space="preserve"><value>El intercambio de token devolvió una sesión vacía.</value></data>
-  <data name="Auth_Err_NotSignedIn" xml:space="preserve"><value>No has iniciado sesión.</value></data>
-  <data name="Auth_Err_RefreshFailed" xml:space="preserve"><value>Error al actualizar la sesión ({0}).</value></data>
-  <data name="Auth_Err_RefreshEmpty" xml:space="preserve"><value>La actualización de sesión devolvió una sesión vacía.</value></data>
-  <data name="Api_Err_EmptyDownloadLink" xml:space="preserve"><value>El enlace de descarga estaba vacío. Inténtalo de nuevo.</value></data>
+<data name="Api_Err_EmptyDownloadLink" xml:space="preserve"><value>El enlace de descarga estaba vacío. Inténtalo de nuevo.</value></data>
   <data name="Api_Err_DownloadFailed" xml:space="preserve"><value>Error en la descarga ({0}).</value></data>
   <data name="Api_Err_RequestFailed" xml:space="preserve"><value>Error en la solicitud ({0})</value></data>
-  <data name="Api_Err_SessionExpired" xml:space="preserve"><value>Sesión caducada. Vuelve a iniciar sesión.</value></data>
-  <data name="Hubcap_Err_InvalidKey" xml:space="preserve"><value>Tu clave de Hubcap no es válida o ha caducado.</value></data>
-  <data name="Hubcap_Err_LimitReached" xml:space="preserve"><value>Has alcanzado tu límite diario de Hubcap.</value></data>
-  <data name="Hubcap_Err_NoManifest" xml:space="preserve"><value>No hay ningún manifiesto de Hubcap para esta app.</value></data>
-  <data name="Hubcap_Err_DownloadFailed" xml:space="preserve"><value>Error en la descarga de Hubcap ({0}).</value></data>
   <data name="Nav_Downloads" xml:space="preserve"><value>Descargas</value></data>
   <data name="Downloads_Title" xml:space="preserve"><value>Descargas</value></data>
   <data name="Downloads_Empty" xml:space="preserve"><value>No hay descargas en curso. ¡Venga, descarga algo!</value></data>
@@ -583,8 +575,6 @@ Esto elimina los archivos .lua de Steam\config\stplug-in.</value></data>
   <data name="Depot_Err_NoSpace" xml:space="preserve"><value>No hay espacio suficiente: necesita {0} y solo hay {1} libres.</value></data>
   <data name="Builds_Select_SaveTo" xml:space="preserve"><value>Guardar en</value></data>
   <data name="Builds_Select_Space" xml:space="preserve"><value>Necesita {0} · {1} libres en {2}</value></data>
-  <data name="Builds_Select_SignIn" xml:space="preserve"><value>Inicia sesión para descargar este depósito.</value></data>
-  <data name="Depot_Err_SignIn" xml:space="preserve"><value>Inicia sesión para descargar depósitos.</value></data>
   <data name="Downloads_Depot_FetchingManifest" xml:space="preserve"><value>obteniendo manifest</value></data>
   <data name="Depot_Err_NoManifest" xml:space="preserve"><value>No se pudo obtener el manifest de este depósito.</value></data>
   <data name="Downloads_Depots_Preparing" xml:space="preserve"><value>Preparando · {0} de {1}</value></data>

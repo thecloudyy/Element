@@ -16,6 +16,7 @@ namespace ElementGui.Services.Downloads;
 /// </remarks>
 public class ManifestJobFactory(
     ElementApiClient api,
+    HubcapApiClient hubcap,
     LuaInstaller installer,
     SteamLibraryService library,
     CoverCache covers,
@@ -27,7 +28,11 @@ public class ManifestJobFactory(
 {
     // ── Job builders ─────────────────────────────────────────────────
 
-    /// <summary>A base-game manifest from a named source.</summary>
+    /// <summary>A base-game manifest from a named source.
+    /// Fetch is free-only (Hubcap /status + /contents, no quota). Quota is spent only here on
+    /// Download: Hubcap fetches the lua (/lua) plus the manifest zip (/manifest), Ryuu fetches
+    /// its manifest zip. The lua lands in the folder location alongside the manifests.
+    /// </summary>
     public DownloadJob CreateManifestJob(
         long appId, string? gameName, string sourceName, bool needsKey,
         Func<DownloadedFile, DownloadItem, CancellationToken, Task<bool>>? confirm = null,
@@ -35,15 +40,26 @@ public class ManifestJobFactory(
         Action? onReveal = null)
     {
         string title = gameName ?? appId.ToString();
+        bool isHubcap = string.Equals(sourceName, "Hubcap", StringComparison.OrdinalIgnoreCase);
+        string? hubcapLuaPath = null;
         return new DownloadJob(
             DownloadKind.Manifest,
-            $"manifest:{appId}",
+            $"manifest:{appId}:{sourceName.ToLowerInvariant()}",
             appId,
             title,
             SourceMeta.Get(sourceName).DisplayName ?? sourceName,
             covers.GetLocalPath(appId),
-            (_, progress, ct) => api.DownloadManifestAsync(appId.ToString(), null, progress, ct),
-            (file, _, _) => Task.FromResult(InstallManifest(file, appId, title)),
+            async (_, progress, ct) =>
+            {
+                if (!isHubcap)
+                    return await api.DownloadManifestAsync(appId.ToString(), null, progress, ct);
+                // Quota is spent here, not on Fetch: lua + manifest zip together.
+                var lua = await hubcap.DownloadLuaTempAsync(appId.ToString(), ct);
+                if (lua is not null)
+                    hubcapLuaPath = lua.FilePath;
+                return await hubcap.DownloadManifestAsync(appId.ToString(), progress, ct);
+            },
+            (file, _, _) => Task.FromResult(InstallManifestWithTemp(file, appId, title, hubcapLuaPath)),
             confirm,
             onFinished,
             onReveal);
@@ -80,6 +96,7 @@ public class ManifestJobFactory(
         Action<DownloadItem, JobResult?>? onFinished = null)
     {
         bool isManifestSlot = slot == "manifest";
+        bool hubcapFallback = false;
         return new DownloadJob(
             isManifestSlot ? DownloadKind.DenuvoManifest : DownloadKind.DenuvoFix,
             $"denuvo:{fixId}:{slot}",
@@ -87,7 +104,7 @@ public class ManifestJobFactory(
             gameName,
             fixTitle,
             covers.GetLocalPath(appId),
-            (_, progress, ct) =>
+            async (_, progress, ct) =>
             {
                 // Verify the game is on disk BEFORE the request. /api/denuvo/download spends a slot of
                 // the server-side daily limit and the fix zip is game binaries, so discovering "not
@@ -98,13 +115,72 @@ public class ManifestJobFactory(
                 if (!isManifestSlot && library.GetInstallDir(appId) is null)
                     throw new DownloadAbortedException(
                         string.Format(Resources.Strings.Fixes_Toast_GameNotFound_Body, gameName));
-                throw new DownloadAbortedException("Denuvo downloads are no longer supported");
+                try
+                {
+                    return await api.DownloadDenuvoAsync(fixId, slot, fallbackName, progress, ct);
+                }
+                catch (ApiException ex) when (ex.Status == System.Net.HttpStatusCode.Unauthorized && isManifestSlot)
+                {
+                    // lua.tools needs a login the app doesn't have. Fall back to a Hubcap
+                    // bundle (current lua + manifests) so the manifest slot still works.
+                    hubcapFallback = true;
+                    return await DownloadHubcapFixBundleAsync(appId, progress, ct);
+                }
             },
-            (file, _, _) => Task.FromResult(isManifestSlot
-                ? InstallDenuvoManifest(file, appId, gameName)
-                : ApplyDenuvoFix(file, appId, fixId, gameName)),
+            (file, _, _) =>
+            {
+                var result = isManifestSlot
+                    ? InstallDenuvoManifest(file, appId, gameName)
+                    : ApplyDenuvoFix(file, appId, fixId, gameName);
+                if (hubcapFallback && result.Ok && result.Message is not null)
+                    result = result with { Message = result.Message + " (via Hubcap)" };
+                return Task.FromResult(result);
+            },
             ConfirmAsync: null,
             OnFinished: onFinished);
+    }
+
+    /// <summary>
+    /// Hubcap fallback for a fix's manifest slot: bundle Hubcap's current lua + manifest zip
+    /// into one staged zip so the force-locked fix install path just works. Quota is spent
+    /// here (lua + manifest), never on browse.
+    /// </summary>
+    private async Task<DownloadedFile> DownloadHubcapFixBundleAsync(
+        long appId, IProgress<DownloadProgress>? progress, CancellationToken ct)
+    {
+        var manifest = await hubcap.DownloadManifestAsync(appId.ToString(), progress, ct);
+        string? luaPath = null;
+        try { luaPath = (await hubcap.DownloadLuaTempAsync(appId.ToString(), ct))?.FilePath; }
+        catch { /* manifest-only bundle */ }
+
+        try
+        {
+            Directory.CreateDirectory(HttpFileDownloader.StagingFolder);
+            string combinedPath = Path.Combine(HttpFileDownloader.StagingFolder, $"{appId}_hubcap_fix.zip");
+            using (var outArchive = ZipFile.Open(combinedPath, ZipArchiveMode.Create))
+            {
+                using (var inArchive = ZipFile.OpenRead(manifest.FilePath))
+                    foreach (var entry in inArchive.Entries)
+                    {
+                        if (string.IsNullOrEmpty(entry.Name)) continue;
+                        using var src = entry.Open();
+                        using var dst = outArchive.CreateEntry(entry.FullName).Open();
+                        await src.CopyToAsync(dst, ct);
+                    }
+                if (luaPath is not null && File.Exists(luaPath))
+                {
+                    using var dst = outArchive.CreateEntry($"{appId}.lua").Open();
+                    await using var src = File.OpenRead(luaPath);
+                    await src.CopyToAsync(dst, ct);
+                }
+            }
+            return new DownloadedFile(combinedPath, $"{appId}_hubcap_fix.zip");
+        }
+        finally
+        {
+            try { File.Delete(manifest.FilePath); } catch { /* best effort */ }
+            if (luaPath is not null) try { File.Delete(luaPath); } catch { /* best effort */ }
+        }
     }
 
     /// <summary>
@@ -407,8 +483,9 @@ public class ManifestJobFactory(
     }
 
     /// <summary>
-    /// The depotcache path for a depot's manifest, fetching it from the API and installing it there if
-    /// it's missing. Never returns null — it throws with a user-facing reason instead.
+    /// The depotcache path for a depot's manifest when it's already on disk. Never returns null —
+    /// it throws with a user-facing reason instead. No login, no fetch: manifests come from the
+    /// depotcache (button installs, pinned installs, or Steam's own copies).
     /// </summary>
     private async Task<string> EnsureManifestAsync(
         DownloadItem item, DepotSelection sel, string step, CancellationToken ct)
@@ -418,11 +495,8 @@ public class ManifestJobFactory(
         if (depotTool.ResolveManifestPath(sel.DepotId, sel.ManifestId!) is { } have) return have;
 
         // Nothing usable — but something may still be sitting there under the right name. It has to go
-        // before the fetch, or InstallManifestFile will skip the copy and hand the bad file straight back.
+        // before anything else hands the bad file back.
         depotTool.DiscardCachedManifest(sel.DepotId, sel.ManifestId!);
-
-        if (!depotTool.CanFetchManifests)
-            throw new DownloadAbortedException(Resources.Strings.Depot_Err_SignIn);
 
         OnUi(() => item.Detail = $"{step} · {Resources.Strings.Downloads_Depot_FetchingManifest}");
 
@@ -467,6 +541,50 @@ public class ManifestJobFactory(
         finally
         {
             DeleteStaged(file.FilePath); // consumed by the install
+        }
+    }
+
+    /// <summary>
+    /// Install with a sidecar lua: move the lua to the folder location first
+    /// (so the game shows as available even if the manifest zip carries no lua), then
+    /// install the manifests from the main file. Temp file is deleted after use.
+    /// </summary>
+    private JobResult InstallManifestWithTemp(DownloadedFile file, long appId, string gameName, string? sidecarLuaPath)
+    {
+        bool tempInstalled = false;
+        string? tempError = null;
+        try
+        {
+            if (sidecarLuaPath is not null && File.Exists(sidecarLuaPath))
+            {
+                try
+                {
+                    var luaRes = installer.InstallLua(sidecarLuaPath, appId);
+                    tempInstalled = luaRes.Error is null && !luaRes.AnyFailed && luaRes.LuaInstalled;
+                    if (!tempInstalled && luaRes.Error is not null)
+                        tempError = luaRes.Error;
+                }
+                catch (Exception ex) { tempError = ex.Message; }
+                finally
+                {
+                    try { File.Delete(sidecarLuaPath); } catch { /* best effort */ }
+                }
+            }
+
+            var result = InstallManifest(file, appId, gameName);
+
+            // If the zip had no lua but our temp lua installed, still report success with manifests.
+            if (!result.Ok && tempInstalled)
+                return new JobResult(true, string.Format(Resources.Strings.Add_Status_AddedFetch, gameName), installer.ReadInstalledLua(appId));
+            if (result.Ok && tempInstalled && result.Message is not null)
+                return result;
+            if (!result.Ok && tempError is not null)
+                return new JobResult(false, tempError);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            return new JobResult(false, ex.Message);
         }
     }
 

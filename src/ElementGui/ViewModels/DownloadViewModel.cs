@@ -19,13 +19,16 @@ public partial class SourceRowViewModel : ObservableObject
     public string DisplayName { get; }
     public string Status { get; }
     public bool NeedsKey { get; }
+    public bool IsRecommended { get; }
+    public bool HideStatus { get; }
 
     public bool IsAvailable => Status == "available";
     public string StatusLabel => Status.ToUpperInvariant();
 
-    /// <summary>Hide the status badge when availability is unknown (e.g. a source row with no key set.
-    /// We can't check, so we don't show a misleading badge; the "needs key" hint covers it instead).</summary>
-    public bool ShowStatus => Status != "unknown";
+    /// <summary>Always show AVAILABLE / MISSING / UNKNOWN so a missing download button
+    /// is explainable instead of a blank row. Sources flagged HideStatus (Ryuu)
+    /// show no tag at all.</summary>
+    public bool ShowStatus => !HideStatus;
 
     /// <summary>Key not configured. Show a hint instead of a download button.</summary>
     [ObservableProperty]
@@ -34,6 +37,17 @@ public partial class SourceRowViewModel : ObservableObject
 
     [ObservableProperty] private string? _statsText;
     [ObservableProperty] private bool _isSupporter;
+
+    /// <summary>Quota badge heat: 0 green, 1 yellow, 2 red. Driven by SetUsage.</summary>
+    [ObservableProperty] private int _usageLevel;
+
+    /// <summary>Set the "used/limit" badge plus its green â†’ yellow â†’ red heat.</summary>
+    public void SetUsage(int used, int limit)
+    {
+        StatsText = $"{used}/{limit}";
+        double ratio = limit > 0 ? (double)used / limit : 0;
+        UsageLevel = ratio >= 0.9 ? 2 : ratio >= 0.7 ? 1 : 0;
+    }
 
     /// <summary>The queue item for this row's in-flight download, if any. The row's progress bar binds
     /// straight through to it, so the queue stays the only owner of download state.</summary>
@@ -45,7 +59,7 @@ public partial class SourceRowViewModel : ObservableObject
     // would collapse it anyway; this just keeps the button from looking clickable.
     public bool CanDownload => IsAvailable && !IsLocked && QueueItem?.IsActive != true;
 
-    public SourceRowViewModel(DownloadViewModel parent, string name, string status)
+    public SourceRowViewModel(DownloadViewModel parent, string name, string status, bool isLocked = false)
     {
         _parent = parent;
         Name = name;
@@ -53,6 +67,9 @@ public partial class SourceRowViewModel : ObservableObject
         var meta = SourceMeta.Get(name);
         DisplayName = meta.DisplayName ?? name;
         NeedsKey = meta.RequiresUserKey;
+        IsRecommended = meta.IsRecommended;
+        HideStatus = meta.HideStatus;
+        _isLocked = isLocked;
     }
 
     [RelayCommand]
@@ -69,6 +86,7 @@ public record FeaturedItem(long AppId, string Name, string? Image);
 public partial class DownloadViewModel : ObservableObject
 {
     private readonly ElementApiClient _api;
+    private readonly HubcapApiClient _hubcap;
     private readonly SettingsService _settings;
     private readonly ToastService _toast;
     private readonly LuaInstaller _installer;
@@ -295,13 +313,14 @@ public partial class DownloadViewModel : ObservableObject
 
     private bool _suppressSearch;
 
-    public DownloadViewModel(ElementApiClient api, SettingsService settings,
+    public DownloadViewModel(ElementApiClient api, HubcapApiClient hubcap, SettingsService settings,
         ToastService toast, LuaInstaller installer,
         SteamAppListCache appList, SteamAppInfoCache appInfo, SteamDepotInfo depotInfo,
         HardwareAppIdService hardware, DropInstallViewModel drop,
         DownloadQueue queue, ManifestJobFactory jobs)
     {
         _api = api;
+        _hubcap = hubcap;
         _settings = settings;
         _toast = toast;
         _installer = installer;
@@ -447,7 +466,7 @@ public partial class DownloadViewModel : ObservableObject
     }
 
     /// <summary>Fetch the Steam featured strips once (top sellers + new releases). Best-effort: on failure
-    /// the collections stay empty and the strips simply don't render. Steam hardware (Deck, Index, …) is
+    /// the collections stay empty and the strips simply don't render. Steam hardware (Deck, Index, ï¿½) is
     /// filtered out via the hardware blacklist.</summary>
     public async Task LoadFeaturedAsync()
     {
@@ -490,13 +509,92 @@ public partial class DownloadViewModel : ObservableObject
             }
             else
             {
-                // Source checking is no longer available; use Ryuu directly
-                var statuses = new Dictionary<string, string>();
+                // Hubcap first (Recommended), then Ryuu. Hubcap probe is free-only
+                // (/status + /contents, no quota spent): available means Hubcap holds a
+                // manifest zip for the app. Ryuu is listed as-is with no checks at all.
+                string appid = Details.AppId.ToString();
+                var ordered = new[] { "Hubcap", "Ryuu" };
 
-                statuses["Ryuu"] = "available";
+                foreach (string name in ordered)
+                {
+                    string status;
+                    bool locked = false;
+                    try
+                    {
+                        if (string.Equals(name, "Hubcap", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!_hubcap.HasKey)
+                            {
+                                status = "unknown";
+                                locked = true;
+                                Sources.Add(new SourceRowViewModel(this, name, status, isLocked: true));
+                                continue;
+                            }
+                            // Free-only probe: /status then /manifest/{id}/contents.
+                            // No lua/manifest download here so Fetch never spends quota.
+                            var st = await _hubcap.GetStatusAsync(appid);
+                            if (st.Error == "invalid_key")
+                            {
+                                status = "unknown";
+                                locked = true;
+                                Error = "Your Hubcap key is invalid or expired.";
+                            }
+                            else if (st.Error == "limit")
+                            {
+                                status = "unknown";
+                                Error = "Your Hubcap daily limit has been reached.";
+                            }
+                            else if (st.Error == "offline")
+                            {
+                                status = "unknown";
+                                Error = "Hubcap is unreachable.";
+                            }
+                            else if (st.Error is not null && st.Error.StartsWith("http_5"))
+                            {
+                                status = "unknown";
+                                Error = $"Hubcap is unreachable ({st.Error.Replace("http_", "HTTP ")}).";
+                            }
+                            else if (!st.Available)
+                            {
+                                status = "missing";
+                            }
+                            else
+                            {
+                                var contents = await _hubcap.GetManifestContentsAsync(appid);
+                                if (contents is null || !contents.ZipExists || contents.ManifestCount == 0)
+                                    status = "missing";
+                                else
+                                    status = "available";
+                            }
+                        }
+                        else
+                        {
+                            // Ryuu is listed without any checks: always shown as available,
+                            // no key/limit validation, no probe. Failures surface at download time.
+                            status = "available";
+                        }
+                    }
+                    catch (OperationCanceledException) { throw; }
+                    catch
+                    {
+                        status = "missing";
+                    }
 
-                foreach (var (name, status) in statuses)
-                    Sources.Add(new SourceRowViewModel(this, name, status));
+                    var row = new SourceRowViewModel(this, name, status, isLocked: locked);
+                    Sources.Add(row);
+
+                    // Show the Hubcap key limit on Fetch too (free endpoint, no quota spent).
+                    if (string.Equals(name, "Hubcap", StringComparison.OrdinalIgnoreCase) && _hubcap.HasKey)
+                    {
+                        try
+                        {
+                            var usage = await _hubcap.GetUserStatsAsync();
+                            if (usage is not null)
+                                row.SetUsage(usage.Used, usage.Limit);
+                        }
+                        catch { /* badge is best-effort; row already shows available/missing */ }
+                    }
+                }
 
                 SourcesLoaded = true;
             }
@@ -513,15 +611,6 @@ public partial class DownloadViewModel : ObservableObject
         {
             IsChecking = false;
         }
-    }
-
-    /// <summary>
-    /// Refresh the standard usage badge on every non-key source row. Signed-in only.
-    /// NOTE: Usage tracking is no longer available from the API.
-    /// </summary>
-    public Task RefreshStandardUsageAsync()
-    {
-        return Task.CompletedTask;
     }
 
     // -- Downloads ---------------------------------------------------
@@ -583,7 +672,7 @@ public partial class DownloadViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Terminal callback for a manifest/DLC job: drive the install banner and refresh the usage badge.
+    /// Terminal callback for a manifest/DLC job: drive the install banner.
     /// Runs on the dispatcher.
     /// </summary>
     private void OnManifestFinished(DownloadItem item, JobResult? result)
@@ -601,8 +690,6 @@ public partial class DownloadViewModel : ObservableObject
             InstallFailed = !result.Ok;
             InstallStatus = result.Message;
         }
-
-        _ = RefreshStandardUsageAsync();
     }
 
     // -- Install + overwrite confirm ---------------------------------
@@ -728,7 +815,7 @@ public partial class DownloadViewModel : ObservableObject
         return _appList.GetName(e.Id) ?? _appInfo.GetCached(e.Id)?.Name ?? e.Comment;
     }
 
-    /// <summary>Enriched diff row: real name + "id · size · OS · lang" + DLC/SHARED chip + SteamDB link.</summary>
+    /// <summary>Enriched diff row: real name + "id ï¿½ size ï¿½ OS ï¿½ lang" + DLC/SHARED chip + SteamDB link.</summary>
     private DiffRow ToDiffRow(LuaEntry e)
     {
         var d = _depotsById.GetValueOrDefault(e.Id);
@@ -750,7 +837,7 @@ public partial class DownloadViewModel : ObservableObject
             ? $"https://steamdb.info/app/{dlcId}/"
             : $"https://steamdb.info/depot/{e.Id}/";
 
-        return new DiffRow(title, string.Join("  ·  ", meta), isDlc, isShared, url);
+        return new DiffRow(title, string.Join("  ï¿½  ", meta), isDlc, isShared, url);
     }
 
     [RelayCommand]
@@ -814,7 +901,7 @@ public partial class DownloadViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Extract an appid from a Steam/SteamDB store URL (…/app/&lt;id&gt;), or from a bare number of 5+
+    /// Extract an appid from a Steam/SteamDB store URL (ï¿½/app/&lt;id&gt;), or from a bare number of 5+
     /// digits. Short numbers go through normal title search instead. Game titles like "007", "500"
     /// or "1942" are numbers too. Tradeoff: very old games with short appids (e.g. 500 = Left 4 Dead)
     /// won't auto-resolve from a bare number and must be searched or pasted as a URL.

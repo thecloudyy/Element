@@ -105,11 +105,12 @@ public class SupporterStatus
 /// <summary>Per-source UI metadata, mirroring src/lib/source-meta.ts on the website.</summary>
 public static class SourceMeta
 {
-    public record Meta(string? DisplayName = null, bool RequiresUserKey = false);
+    public record Meta(string? DisplayName = null, bool RequiresUserKey = false, bool IsRecommended = false, bool HideStatus = false);
 
     public static readonly Dictionary<string, Meta> All = new()
     {
-        ["Ryuu"] = new(),
+        ["Hubcap"] = new(DisplayName: "Hubcap", RequiresUserKey: true, IsRecommended: true),
+        ["Ryuu"] = new(DisplayName: "Ryuu", RequiresUserKey: true, HideStatus: true),
     };
 
     public static Meta Get(string name) => All.TryGetValue(name, out var m) ? m : new Meta();

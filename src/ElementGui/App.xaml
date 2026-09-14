@@ -13,6 +13,7 @@
             </ResourceDictionary.MergedDictionaries>
 
             <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis" />
+            <local:InverseBoolConverter x:Key="InverseBool" />
             <local:NullToCollapsedConverter x:Key="NullToCollapsed" />
             <local:StatusToBrushConverter x:Key="StatusToBrush" />
             <local:ImagePathToSourceConverter x:Key="ImagePathToSource" />

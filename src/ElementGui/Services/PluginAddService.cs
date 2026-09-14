@@ -14,7 +14,8 @@ namespace ElementGui.Services;
 public class PluginAddService(
     ElementApiClient api,
     DownloadQueue queue,
-    ManifestJobFactory jobs)
+    ManifestJobFactory jobs,
+    SettingsService settings)
 {
     public class SourceRow
     {
@@ -96,15 +97,19 @@ public class PluginAddService(
         {
             var nameTask = string.IsNullOrEmpty(state.GameName) ? SafeGetGameNameAsync(appId) : null;
 
-            // Source checking is no longer available from the API. Use known sources.
+            // Hubcap first (Recommended) and live; Ryuu listed as-is with no checks.
             var statuses = new Dictionary<string, string>
             {
+                ["Hubcap"] = "available",
                 ["Ryuu"] = "available",
             };
 
-            // Premium (key-gated) sources first, mirroring the website/app ordering.
+            // The "Add with Element" button's configured API first (Built-In Button
+            // Mode setting, Hubcap default), then Recommended, then key-gated.
+            string preferred = settings.BuiltInButtonMode;
             var rows = statuses
-                .OrderByDescending(kv => SourceMeta.Get(kv.Key).RequiresUserKey ? 1 : 0)
+                .OrderBy(kv => string.Equals(kv.Key, preferred, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+                .ThenByDescending(kv => SourceMeta.Get(kv.Key).IsRecommended ? 2 : SourceMeta.Get(kv.Key).RequiresUserKey ? 1 : 0)
                 .Select(kv =>
                 {
                     var meta = SourceMeta.Get(kv.Key);

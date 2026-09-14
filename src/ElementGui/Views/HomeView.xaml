@@ -150,57 +150,6 @@
                                 TextTrimming="CharacterEllipsis" />
                         </Grid>
                     </Button>
-
-                    <Separator Margin="0,10" Background="#14FFFFFF" />
-
-                    <!-- Account → Settings -->
-                    <Button Command="{Binding OpenSettingsCommand}" Style="{StaticResource StatusRowButton}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="22" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <ui:SymbolIcon
-                                Margin="0,1,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="16"
-                                Foreground="#a78bfa"
-                                Symbol="Person24" />
-                            <TextBlock
-                                Grid.Column="1"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12.5"
-                                Foreground="#d1d5db"
-                                Text="{Binding AccountStatus}" />
-                        </Grid>
-                    </Button>
-
-                    <Separator Margin="0,10" Background="#14FFFFFF" />
-
-                    <!-- Active mode → Mode -->
-                    <Button Command="{Binding OpenModeCommand}" Style="{StaticResource StatusRowButton}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="22" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <ui:SymbolIcon
-                                Margin="0,1,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="16"
-                                Foreground="#a78bfa"
-                                Symbol="Options24" />
-                            <TextBlock
-                                Grid.Column="1"
-                                Margin="10,0,0,0"
-                                VerticalAlignment="Center"
-                                FontSize="12.5"
-                                Foreground="#d1d5db"
-                                Text="{Binding ModeStatus}"
-                                TextTrimming="CharacterEllipsis" />
-                        </Grid>
-                    </Button>
                 </StackPanel>
             </Border>
 

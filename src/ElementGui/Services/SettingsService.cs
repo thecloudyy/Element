@@ -7,6 +7,9 @@ public class AppSettings
 {
     public string? SteamPathOverride { get; set; }
 
+    // Hubcap API key (smm_…). Nullable so "never set" is distinguishable from explicit clear.
+    public string? HubcapKey { get; set; }
+
     // ── Unlocker mode (Mode page). User's chosen backend ────────────
     // "Ost" | "Bst" | "Custom". Older builds wrote "SteamTools" | "OpenSteamTools" |
     // "OpenSteamToolsNightly" | "CloudRedirect"; see ModeMigration, which rewrites those on startup.
@@ -43,6 +46,26 @@ public class AppSettings
     // "never set" (→ default OFF) is distinguishable from an explicit choice.
     public bool? MinimizeToTray { get; set; }
 
+    // Built-in button mode: which API the "Add with Element" store button uses.
+    // "Hubcap" (default) or "Ryuu". Nullable so "never set" (→ Hubcap) is distinguishable.
+    public string? BuiltInButtonMode { get; set; }
+
+    // When true, a steam.cfg with BootStrapperInhibitAll=Enable blocks Steam auto-updates.
+    // Nullable so "never set" (→ default OFF) is distinguishable from an explicit choice.
+    public bool? BlockSteamUpdates { get; set; }
+
+    // Cloud redirect settings.
+    public bool? CloudEnabled { get; set; }
+    public string? CloudProvider { get; set; }  // "GoogleDrive" | "OneDrive" | "CloudflareR2" | "S3" | "Local"
+    public bool? CloudAutoSync { get; set; }
+    public string? CloudPath { get; set; }      // provider path (Google Drive / OneDrive subfolder)
+    public string? CloudLocalPath { get; set; } // local folder path for Local provider
+    public string? CloudS3Endpoint { get; set; }
+    public string? CloudS3Bucket { get; set; }
+    public string? CloudS3AccessKey { get; set; }
+    public string? CloudS3SecretKey { get; set; }
+    public string? CloudS3Prefix { get; set; }
+
 }
 
 public class SettingsService
@@ -71,6 +94,13 @@ public class SettingsService
     {
         get => _settings.SelectedMode;
         set { _settings.SelectedMode = string.IsNullOrWhiteSpace(value) ? null : value; Save(); }
+    }
+
+    /// <summary>Hubcap API key (smm_…), or null if never set. Used as Bearer for hubcapmanifest.com.</summary>
+    public string? HubcapKey
+    {
+        get => _settings.HubcapKey;
+        set { _settings.HubcapKey = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
     }
 
     /// <summary>When true (default), installs don't lock manifests so apps keep auto-updating.</summary>
@@ -121,6 +151,90 @@ public class SettingsService
     {
         get => _settings.MinimizeToTray ?? false; // default OFF
         set { _settings.MinimizeToTray = value; Save(); }
+    }
+
+    /// <summary>Which API the "Add with Element" store button uses ("Hubcap" default, or "Ryuu").</summary>
+    public string BuiltInButtonMode
+    {
+        get => string.IsNullOrWhiteSpace(_settings.BuiltInButtonMode) ? "Hubcap" : _settings.BuiltInButtonMode!;
+        set { _settings.BuiltInButtonMode = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>When true, writes BootStrapperInhibitAll=Enable to steam.cfg to block Steam auto-updates.</summary>
+    public bool BlockSteamUpdates
+    {
+        get => _settings.BlockSteamUpdates ?? false; // default OFF
+        set { _settings.BlockSteamUpdates = value; Save(); }
+    }
+
+    /// <summary>When true, Cloud redirect is enabled.</summary>
+    public bool CloudEnabled
+    {
+        get => _settings.CloudEnabled ?? false; // default OFF
+        set { _settings.CloudEnabled = value; Save(); }
+    }
+
+    /// <summary>Selected cloud provider ("GoogleDrive" | "OneDrive" | "CloudflareR2" | "S3" | "Local").</summary>
+    public string CloudProvider
+    {
+        get => string.IsNullOrWhiteSpace(_settings.CloudProvider) ? "GoogleDrive" : _settings.CloudProvider!;
+        set { _settings.CloudProvider = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>When true, auto-sync saves on game exit.</summary>
+    public bool CloudAutoSync
+    {
+        get => _settings.CloudAutoSync ?? true; // default ON
+        set { _settings.CloudAutoSync = value; Save(); }
+    }
+
+    /// <summary>Cloud provider path/subfolder, or null if never set.</summary>
+    public string? CloudPath
+    {
+        get => _settings.CloudPath;
+        set { _settings.CloudPath = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>Local folder path for Local provider, or null if never set.</summary>
+    public string? CloudLocalPath
+    {
+        get => _settings.CloudLocalPath;
+        set { _settings.CloudLocalPath = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>S3 endpoint, or null if never set.</summary>
+    public string? CloudS3Endpoint
+    {
+        get => _settings.CloudS3Endpoint;
+        set { _settings.CloudS3Endpoint = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>S3 bucket name, or null if never set.</summary>
+    public string? CloudS3Bucket
+    {
+        get => _settings.CloudS3Bucket;
+        set { _settings.CloudS3Bucket = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>S3 access key, or null if never set.</summary>
+    public string? CloudS3AccessKey
+    {
+        get => _settings.CloudS3AccessKey;
+        set { _settings.CloudS3AccessKey = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>S3 secret key, or null if never set.</summary>
+    public string? CloudS3SecretKey
+    {
+        get => _settings.CloudS3SecretKey;
+        set { _settings.CloudS3SecretKey = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>S3 key prefix, or null if never set.</summary>
+    public string? CloudS3Prefix
+    {
+        get => _settings.CloudS3Prefix;
+        set { _settings.CloudS3Prefix = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
     }
 
     private static readonly string TmpPath = FilePath + ".tmp";
@@ -178,7 +292,20 @@ public class SettingsService
             && _settings.BuildsPageSize is null
             && _settings.Language is null
             && _settings.StartWithWindows is null
-            && _settings.MinimizeToTray is null;
+            && _settings.MinimizeToTray is null
+            && _settings.HubcapKey is null
+            && _settings.BuiltInButtonMode is null
+            && _settings.BlockSteamUpdates is null
+            && _settings.CloudEnabled is null
+            && _settings.CloudProvider is null
+            && _settings.CloudAutoSync is null
+            && _settings.CloudPath is null
+            && _settings.CloudLocalPath is null
+            && _settings.CloudS3Endpoint is null
+            && _settings.CloudS3Bucket is null
+            && _settings.CloudS3AccessKey is null
+            && _settings.CloudS3SecretKey is null
+            && _settings.CloudS3Prefix is null;
         if (empty)
         {
             foreach (var p in new[] { FilePath, BakPath, TmpPath })

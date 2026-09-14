@@ -86,6 +86,7 @@ public class HttpServerService : IHostedService
         _log.LogWarning("api.json not found, using fallback sources");
         _apiSources = new()
         {
+            new("Hubcap", "https://hubcapmanifest.com/api/v1/lua/<appid>", 200),
             new("Ryuu", "https://generator.ryuu.lol/api/download/<appid>", 200),
         };
     }
@@ -310,13 +311,26 @@ public class HttpServerService : IHostedService
 
     private async Task<(int, string)> HandleCheckSources(long appId)
     {
-        // Source checking is no longer available from the API. Return known sources.
+        // Known sources, ordered by the "Add with Element" button's configured API
+        // (Built-In Button Mode setting, Hubcap default). No live checks here.
         try
         {
-            var results = new List<object>
+            string preferred = "Hubcap";
+            try { preferred = _services.GetRequiredService<SettingsService>().BuiltInButtonMode; }
+            catch { /* default stands */ }
+
+            var results = new List<object>();
+            void Add(string n, string? u) => results.Add(new { name = n, available = true, url = u });
+            if (string.Equals(preferred, "Ryuu", StringComparison.OrdinalIgnoreCase))
             {
-                new { name = "Ryuu", available = true, url = (string?)null },
-            };
+                Add("Ryuu", "https://generator.ryuu.lol/api/download/<appid>");
+                Add("Hubcap", "https://hubcapmanifest.com/api/v1/lua/<appid>");
+            }
+            else
+            {
+                Add("Hubcap", "https://hubcapmanifest.com/api/v1/lua/<appid>");
+                Add("Ryuu", "https://generator.ryuu.lol/api/download/<appid>");
+            }
             return (200, Json(new { success = true, results }));
         }
         catch (Exception ex)

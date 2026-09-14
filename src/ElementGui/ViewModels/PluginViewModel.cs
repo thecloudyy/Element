@@ -24,15 +24,15 @@ public partial class PluginViewModel : ObservableObject
 
     [ObservableProperty] private string _installedVersion = "—";
     [ObservableProperty] private string _latestVersion = "—";
-    [ObservableProperty] private string _frontendStatus = Resources.Strings.Plugin_Checking;
-    [ObservableProperty] private string _dllStatus = Resources.Strings.Plugin_Checking;
+    [ObservableProperty] private string _manifestdexcoreStatus = Resources.Strings.Plugin_Checking;
+    [ObservableProperty] private string _dwmapiStatus = Resources.Strings.Plugin_Checking;
+    [ObservableProperty] private string _xinputStatus = Resources.Strings.Plugin_Checking;
 
-    // Per-component status flags: drive the colored status icons in the view (green check / amber
-    // warning / grey dismiss). The *Status strings above stay the row label text.
-    [ObservableProperty] private bool _frontendInstalled;
-    [ObservableProperty] private bool _dllOk;
-    [ObservableProperty] private bool _dllOutOfDate;
-    [ObservableProperty] private bool _dllNotInstalled = true;
+    // Per-component status flags: drive the colored status icons in the view (green check when
+    // present, grey dismiss when missing). The *Status strings above stay the row label text.
+    [ObservableProperty] private bool _manifestdexcoreInstalled;
+    [ObservableProperty] private bool _dwmapiInstalled;
+    [ObservableProperty] private bool _xinputInstalled;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(InstallButtonText))]
@@ -47,12 +47,23 @@ public partial class PluginViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(ShowUpToDate))]
     private bool _updateAvailable;
 
+    /// <summary>Online hash proof that the present components match the release. False offline.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowUpToDate))]
+    private bool _upToDate;
+
+    /// <summary>Whether the last check reached GitHub. Offline keeps the local-only view.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowUpToDate))]
+    private bool _offline;
+
     /// <summary>True when the install button should be the loud green primary CTA. Only when there's an
     /// actionable state (fresh install or an update). A healthy up-to-date "Reinstall" stays secondary.</summary>
     public bool InstallIsPrimary => !IsInstalled || UpdateAvailable;
 
-    /// <summary>Green "Up to date" pill on the version line. Only when installed and nothing to update.</summary>
-    public bool ShowUpToDate => IsInstalled && !UpdateAvailable;
+    /// <summary>Green "Up to date" pill on the version line. Installed, nothing to update, and either
+    /// offline (local-only view) or hash-proven current.</summary>
+    public bool ShowUpToDate => IsInstalled && !UpdateAvailable && (Offline || UpToDate);
 
     /// <summary>True when the Millennium mod is detected. Shown as a "coexisting" info line, not a card.</summary>
     [ObservableProperty] private bool _millenniumCoexisting;
@@ -79,23 +90,27 @@ public partial class PluginViewModel : ObservableObject
     private async Task RefreshAsync(bool force)
     {
         var st = await _installer.GetStatusAsync(force);
-        IsInstalled = st.FrontendInstalled && st.DllInstalled;
-        InstalledVersion = st.InstalledTag ?? (IsInstalled ? Resources.Strings.Plugin_Version_Unknown : "—");
+        // Headline truth is local: all three Core DLLs on disk = installed, even offline.
+        IsInstalled = st.CoreInstalled;
+        // Version: Element-made installs read their manifest tag; otherwise, when online and the
+        // on-disk hashes prove the files ARE the release, the release tag itself is the version.
+        InstalledVersion = st.InstalledTag
+            ?? ((st.UpToDate ? st.LatestTag : null) ?? (IsInstalled ? Resources.Strings.Plugin_Version_Unknown : "—"));
+        UpToDate = st.UpToDate;
+        Offline = st.Offline;
         LatestVersion = st.Offline ? Resources.Strings.Plugin_Version_Offline : (st.LatestTag ?? "—");
-        FrontendInstalled = st.FrontendInstalled;
-        FrontendStatus = st.FrontendInstalled ? Resources.Strings.Plugin_Status_Installed : Resources.Strings.Plugin_Status_NotInstalled;
-        DllOk = st.DllInstalled && st.DllMatches;
-        DllOutOfDate = st.DllInstalled && !st.DllMatches;
-        DllNotInstalled = !st.DllInstalled;
-        DllStatus = !st.DllInstalled
-            ? Resources.Strings.Plugin_Status_NotInstalled
-            : st.DllMatches ? Resources.Strings.Plugin_Status_UpToDate : Resources.Strings.Plugin_Status_OutOfDate;
+        ManifestdexcoreInstalled = st.ManifestdexcoreInstalled;
+        ManifestdexcoreStatus = st.ManifestdexcoreInstalled ? Resources.Strings.Plugin_Status_Installed : Resources.Strings.Plugin_Status_NotInstalled;
+        DwmapiInstalled = st.DwmapiInstalled;
+        DwmapiStatus = st.DwmapiInstalled ? Resources.Strings.Plugin_Status_Installed : Resources.Strings.Plugin_Status_NotInstalled;
+        XinputInstalled = st.XinputInstalled;
+        XinputStatus = st.XinputInstalled ? Resources.Strings.Plugin_Status_Installed : Resources.Strings.Plugin_Status_NotInstalled;
         UpdateAvailable = st.UpdateAvailable;
         MillenniumCoexisting = st.MillenniumPresent;
-        // Offline takes priority (it's the more actionable/common case); the port warning is secondary and
-        // only worth surfacing once we actually know install state, not on every offline check.
-        StatusLine = st.Offline ? Resources.Strings.Plugin_Status_OfflineCheck
-            : st.Port8080Busy ? Resources.Strings.Plugin_Status_Port8080Busy
+        // Offline is only worth surfacing when there's nothing installed to show for it; a present
+        // Core reads as a clean "Installed" with no warning. The port warning stays online-only.
+        StatusLine = st.Offline && !st.CoreInstalled ? Resources.Strings.Plugin_Status_OfflineCheck
+            : !st.Offline && st.Port8080Busy ? Resources.Strings.Plugin_Status_Port8080Busy
             : null;
     }
 

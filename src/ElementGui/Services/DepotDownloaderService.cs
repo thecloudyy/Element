@@ -82,13 +82,6 @@ public partial class DepotDownloaderService(
     CacheService cache,
     ILogger<DepotDownloaderService> log)
 {
-    /// <summary>
-    /// Whether missing manifests can be fetched from the API. Guests can still download depots whose
-    /// manifest Steam already has — they just can't pull new ones. Checked locally so the picker never
-    /// needs a request to decide what to grey out.
-    /// </summary>
-    public bool CanFetchManifests => false;
-
     private static readonly string ToolDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ElementGui", "depotdownloader");
 

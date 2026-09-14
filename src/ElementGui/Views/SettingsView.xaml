@@ -69,6 +69,34 @@
                             VerticalAlignment="Center"
                             IsChecked="{Binding AutoUpdateApps, Mode=TwoWay}" />
                     </Grid>
+                    <Border Style="{StaticResource RowDivider}" />
+                    <!-- Built-In Button Mode -->
+                    <Grid Margin="14,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock
+                                FontSize="13"
+                                FontWeight="Medium"
+                                Text="{x:Static res:Strings.Settings_BuiltInButtonMode}" />
+                            <TextBlock
+                                Margin="0,4,0,0"
+                                FontSize="12"
+                                Foreground="#6b7280"
+                                Text="{x:Static res:Strings.Settings_BuiltInButtonMode_Hint}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ComboBox
+                            Grid.Column="1"
+                            Margin="12,0,0,0"
+                            MinWidth="140"
+                            VerticalAlignment="Center"
+                            DisplayMemberPath="Display"
+                            ItemsSource="{Binding ButtonModeOptions}"
+                            SelectedItem="{Binding SelectedButtonMode, Mode=TwoWay}" />
+                    </Grid>
                 </StackPanel>
             </Border>
 
@@ -144,6 +172,58 @@
                         Text="{Binding SteamWarning}"
                         TextWrapping="Wrap"
                         Visibility="{Binding SteamWarning, Converter={StaticResource NullToCollapsed}}" />
+                    <Border Style="{StaticResource RowDivider}" />
+                    <!-- Block Steam Auto-Updates -->
+                    <Grid Margin="14,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock
+                                FontSize="13"
+                                FontWeight="Medium"
+                                Text="{x:Static res:Strings.Settings_BlockSteamUpdates}" />
+                            <TextBlock
+                                Margin="0,4,0,0"
+                                FontSize="12"
+                                Foreground="#6b7280"
+                                Text="{x:Static res:Strings.Settings_BlockSteamUpdates_Hint}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ui:ToggleSwitch
+                            Grid.Column="1"
+                            Margin="12,0,0,0"
+                            VerticalAlignment="Center"
+                            IsChecked="{Binding BlockSteamUpdates, Mode=TwoWay}" />
+                    </Grid>
+                    <Border Style="{StaticResource RowDivider}" />
+                    <!-- Clean Steam Cache -->
+                    <Grid Margin="14,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock
+                                FontSize="13"
+                                FontWeight="Medium"
+                                Text="{x:Static res:Strings.Settings_CleanSteamCache}" />
+                            <TextBlock
+                                Margin="0,4,0,0"
+                                FontSize="12"
+                                Foreground="#6b7280"
+                                Text="{x:Static res:Strings.Settings_CleanSteamCache_Hint}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ui:Button
+                            Grid.Column="1"
+                            Margin="12,0,0,0"
+                            VerticalAlignment="Center"
+                            Command="{Binding CleanSteamCacheCommand}"
+                            Content="{x:Static res:Strings.Settings_CleanSteamCache_Btn}"
+                            Icon="{ui:SymbolIcon Delete24}" />
+                    </Grid>
                 </StackPanel>
             </Border>
 

@@ -5,8 +5,11 @@ namespace ElementGui;
 /// </summary>
 public static class AppConfig
 {
+    public const string HubcapApiBaseUrl = "https://hubcapmanifest.com";
     public const string ApiBaseUrl = "https://generator.ryuu.lol";
-    public const string AuthKey = "waauFN2MpVidOhKX";
+    public const string LuaToolsApiBaseUrl = "https://lua.tools";
+    public const string AuthKey = "hqGqlo1bw6aWFl08";
+    public const string HubcapKey = "smm_da41ecae4378061052ce32dc357c9ae118c5f64cf6aab072c08c606c57d7558afe894d27e1eb14f90c521752894eebed";
 
     // Public upstream APIs the app calls directly (no proxy needed for guest browsing).
     public const string SteamStoreSearchUrl = "https://store.steampowered.com/api/storesearch/";
@@ -18,9 +21,6 @@ public static class AppConfig
 
     // Steamless (atom0s): strips SteamStub DRM from a game's .exe.
     public const string SteamlessRepo = "atom0s/Steamless";
-
-    // CloudRedirect (Selectively11): the Mode page "Manage" button downloads the latest CloudRedirect.exe.
-    public const string CloudRedirectRepo = "Selectively11/CloudRedirect";
 
     // SteamAutoCrack: the Downloads page button fetches this release and launches its GUI.
     public const string SteamAutoCrackRepo = "SteamAutoCracks/Steam-auto-crack";
@@ -38,14 +38,15 @@ public static class AppConfig
     /// </summary>
     public static readonly string[] GithubReleasesRepos =
     [
-        "https://github.com/thecloudyy/Element",
+        "https://github.com/thecloudyy/OpenSteamTool",
+        "https://github.com/thecloudyy/ManifestDeXCore",
     ];
 
     public static string GithubReleasesRepo => GithubReleasesRepos[0];
 
     // Plugin releases
     public const string PluginReleasesOwner = "thecloudyy";
-    public const string PluginReleasesRepo = "LTSP";
+    public const string PluginReleasesRepo = "ManifestDeXCore";
 
     // GitHub proxy mirrors
     public static readonly string[] GithubApiMirrors =

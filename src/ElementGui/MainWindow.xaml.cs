@@ -134,9 +134,6 @@ public partial class MainWindow : Wpf.Ui.Controls.FluentWindow
     /// <summary>Switch to Plugin (used by Home's "Plugin Status" tile).</summary>
     public void NavigateToPlugin() => RootNavigation.Navigate(typeof(PluginView));
 
-    /// <summary>Switch to Mode (used by Home's mode status row).</summary>
-    public void NavigateToMode() => RootNavigation.Navigate(typeof(ModeView));
-
     // "Restart Steam" is an action, not a page: run the command, don't leave it selected.
     private void RestartSteam_Click(object sender, RoutedEventArgs e)
     {

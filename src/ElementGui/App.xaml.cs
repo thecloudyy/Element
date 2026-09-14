@@ -40,7 +40,6 @@ public partial class App : Application
                 services.AddSingleton<HardwareAppIdService>();
                 services.AddSingleton<SteamlessService>();
                 services.AddSingleton<SteamAutoCrackService>();
-                services.AddSingleton<CloudRedirectService>();
                 services.AddSingleton<DepotDownloaderService>();
                 services.AddSingleton<DepotCacheMigrationService>();
                 services.AddSingleton<AppliedFixIndexService>();
@@ -48,6 +47,7 @@ public partial class App : Application
                 services.AddSingleton<PluginInstallerService>();
                 services.AddTransient<DropInstallViewModel>(); // one per page (Home, Add)
                 services.AddSingleton<ElementApiClient>();
+                services.AddSingleton<HubcapApiClient>();
                 services.AddSingleton<UpdateService>();
                 // Central download queue. Singleton + hosted service (same pattern as HttpServerService
                 // below): the hosted lifetime runs the scheduler pump, and view models resolve the same
@@ -69,10 +69,10 @@ public partial class App : Application
                 services.AddSingleton<BuildsViewModel>();
                 services.AddTransient<LaunchOptionsViewModel>(); // one per dialog
                 services.AddSingleton<HomeViewModel>();
-                services.AddSingleton<ModeViewModel>();
                 services.AddSingleton<FixesViewModel>();
                 services.AddSingleton<DownloadsViewModel>();
                 services.AddSingleton<PluginViewModel>();
+                services.AddSingleton<CloudViewModel>();
                 services.AddSingleton<OnboardingViewModel>();
                 services.AddSingleton<MainViewModel>();
                 // Pages resolved by NavigationView via the DI service provider.
@@ -81,9 +81,9 @@ public partial class App : Application
                 services.AddSingleton<DownloadsView>();
                 services.AddSingleton<ManageView>();
                 services.AddSingleton<BuildsView>();
-                services.AddSingleton<ModeView>();
                 services.AddSingleton<FixesView>();
                 services.AddSingleton<PluginView>();
+                services.AddSingleton<CloudView>();
                 services.AddSingleton<SettingsView>();
                 services.AddSingleton<MainWindow>();
             })
@@ -205,11 +205,10 @@ public partial class App : Application
                 var st = await installer.GetStatusAsync(force: true);
                 if (st.UpdateAvailable)
                 {
-                    if (!st.DllMatches)
-                    {
-                        var t = _host.Services.GetRequiredService<ToastService>();
-                        Dispatcher.Invoke(() => t.Show("Element", "Updating plugin. Steam will restart."));
-                    }
+                    // An update means an older Element-made install (manifest tag) vs. the
+                    // release: files will change, so say so before the Steam restart.
+                    var t = _host.Services.GetRequiredService<ToastService>();
+                    Dispatcher.Invoke(() => t.Show("Element", "Updating plugin. Steam will restart."));
                     await installer.InstallAsync(progress: null);
                 }
             }
@@ -252,7 +251,7 @@ public partial class App : Application
 
         // Point OST/BST at config/stplug-in so lua writes hot-reload. Must run AFTER the migration
         // above, which is what makes SelectedMode parse. The app no longer tells anyone to restart
-        // Steam for a lua change, so this registration is what makes that promise true — and it
+        // Steam for a lua change, so this registration is what makes that promise true ï¿½ and it
         // previously only ever ran during a mode install through this app.
         _host.Services.GetRequiredService<UnlockerService>().EnsureLuaPathRegistered();
 
@@ -315,6 +314,27 @@ public partial class App : Application
                 ElementGui.Resources.Strings.Lang_Changed_Restart,
                 () => settingsVm.RequestRestart?.Invoke()));
 
+        // Built-In Button Mode changed ? restart Steam (not the app): the mode
+        // takes effect on the Steam/module side.
+        settingsVm.RequestButtonModeRestartPrompt = () => Dispatcher.Invoke(() =>
+            toast.ShowAction(
+                ElementGui.Resources.Strings.ButtonMode_Changed_Title,
+                ElementGui.Resources.Strings.ButtonMode_Changed_Body,
+                ElementGui.Resources.Strings.Lang_Changed_Restart,
+                () => _ = settingsVm.RestartSteamForButtonModeCommand.ExecuteAsync(null)));
+
+        // Block Steam updates (steam.cfg) changed ? restart Steam so the cfg is re-read.
+        settingsVm.RequestSteamCfgRestartPrompt = blocked => Dispatcher.Invoke(() =>
+            toast.ShowAction(
+                blocked
+                    ? ElementGui.Resources.Strings.SteamCfg_Changed_Title
+                    : ElementGui.Resources.Strings.SteamCfg_Removed_Title,
+                blocked
+                    ? ElementGui.Resources.Strings.SteamCfg_Changed_Body
+                    : ElementGui.Resources.Strings.SteamCfg_Removed_Body,
+                ElementGui.Resources.Strings.Lang_Changed_Restart,
+                () => _ = settingsVm.RestartSteamForButtonModeCommand.ExecuteAsync(null)));
+
         // App updates now apply silently via RunUpdateFlowAsync (restart-on-Steam-open, unconditionally
         // and before any plugin update), so no "Restart" prompt toast.
         var download = _host.Services.GetRequiredService<DownloadViewModel>();
@@ -330,7 +350,7 @@ public partial class App : Application
         manage.NavigateToBuilds = appId =>
             Dispatcher.Invoke(() => { window.NavigateToBuilds(); _ = builds.SelectAppAsync(appId); });
 
-        // Manage flyout "Launch options…" ? modal editor over Steam's appinfo cache.
+        // Manage flyout "Launch optionsï¿½" ? modal editor over Steam's appinfo cache.
         manage.OpenLaunchOptions = (appId, name) => Dispatcher.Invoke(() =>
         {
             var dialog = new LaunchOptionsDialog(
@@ -379,7 +399,6 @@ public partial class App : Application
         home.NavigateToPlugin = () => Dispatcher.Invoke(window.NavigateToPlugin);
         home.NavigateToManage = () => Dispatcher.Invoke(window.NavigateToManage);
         home.NavigateToSettings = () => Dispatcher.Invoke(window.NavigateToSettings);
-        home.NavigateToMode = () => Dispatcher.Invoke(window.NavigateToMode);
 
         // Onboarding finished applying its actions ? refresh the Home dashboard tiles (mode + plugin status).
         main.Onboarding.RefreshHome = () => Dispatcher.Invoke(() => home.LoadAsync());

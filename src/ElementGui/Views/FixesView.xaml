@@ -586,7 +586,7 @@
                     </ScrollViewer>
                     </Grid>
 
-                    <!-- Revert confirmation overlay (in-flyout card, same pattern as ModeView). -->
+                    <!-- Revert confirmation overlay (in-flyout card). -->
                     <Grid
                         Background="#99000000"
                         Visibility="{Binding IsConfirmingRevert, Converter={StaticResource BoolToVis}}">

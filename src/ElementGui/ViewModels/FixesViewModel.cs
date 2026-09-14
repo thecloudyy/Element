@@ -177,7 +177,7 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     /// </summary>
     /// <remarks>
     /// The count must be the INTERSECTION, not <c>_installedAppIds.Count</c>. The string reads "{0} of
-    /// your games have fixes", but the raw count is every game with a lua added — so a library with 243
+    /// your games have fixes", but the raw count is every game with a lua added ï¿½ so a library with 243
     /// added games advertised 243 fixes while the filtered grid showed a dozen. This mirrors exactly what
     /// <c>ApplyFilter</c> puts on screen when My games is on.
     /// </remarks>
@@ -197,7 +197,7 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     {
         if (value)
         {
-            SelectedTagId = null; // one filter at a time — turning "my games" on drops any tag
+            SelectedTagId = null; // one filter at a time ï¿½ turning "my games" on drops any tag
             foreach (var pill in Tags) pill.IsSelected = false;
         }
         ApplyFilter();
@@ -233,8 +233,18 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
         IsLoading = true;
         try
         {
-            // Denuvo listings are no longer available from the API
-            EmptyMessage = "Denuvo fix listings are no longer available";
+            var data = await api.GetDenuvoListingsAsync();
+            if (data is null)
+            {
+                EmptyMessage = Resources.Strings.Fixes_Err_Load;
+                return;
+            }
+
+            _allGames = data.Games.Select(g => new FixGameCardVm(g)).ToList();
+            Tags.Clear();
+            foreach (var t in data.Tags) Tags.Add(new TagPillVm(t));
+            ApplyFilter();
+            if (_allGames.Count == 0) EmptyMessage = Resources.Strings.Fixes_Empty_None;
         }
         catch
         {
@@ -262,7 +272,7 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     private void SelectTag(string? tagId)
     {
         SelectedTagId = SelectedTagId == tagId ? null : tagId; // toggle off when re-clicked
-        if (MyGamesOnly) MyGamesOnly = false; // one filter at a time — picking a tag drops "my games"
+        if (MyGamesOnly) MyGamesOnly = false; // one filter at a time ï¿½ picking a tag drops "my games"
         foreach (var pill in Tags) pill.IsSelected = pill.Id == SelectedTagId;
         ApplyFilter();
     }
@@ -310,7 +320,7 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     }
 
     /// <summary>
-    /// Open the game's Steam install folder — where <c>ApplyDenuvoFix</c> extracts a fix to.
+    /// Open the game's Steam install folder ï¿½ where <c>ApplyDenuvoFix</c> extracts a fix to.
     /// </summary>
     /// <remarks>
     /// Resolved on click, not bound to a property: <c>GetInstallDir</c> walks libraryfolders.vdf and the
@@ -340,8 +350,22 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
         IsLoadingFixes = true;
         try
         {
-            // Denuvo fixes are no longer available from the API
-            _allFixes = [];
+            var data = await api.GetDenuvoFixesAsync(game.AppId);
+            if (data is not null)
+            {
+                _allFixes = data.Fixes.Select(f => new FixItemVm(f)).ToList();
+
+                // Build the per-game filter pills from the distinct tags across this game's fixes â€”
+                // but only when there's more than one (a single tag is no filter).
+                var distinct = _allFixes.SelectMany(f => f.Tags)
+                    .GroupBy(t => t.Id).Select(g => g.First())
+                    .OrderBy(t => t.Name).ToList();
+                if (distinct.Count > 1)
+                    foreach (var t in distinct) FixTags.Add(new TagPillVm(t));
+
+                OnPropertyChanged(nameof(HasFixTags));
+                ApplyFixFilter();
+            }
         }
         catch { /* leave empty. Flyout shows "no fixes" */ }
         finally { IsLoadingFixes = false; }

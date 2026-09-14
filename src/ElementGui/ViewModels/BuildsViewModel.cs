@@ -951,7 +951,8 @@ public partial class BuildsViewModel : PagedListViewModel<LuaTileViewModel>
 
                 // All three checks are local — opening the picker costs zero API calls however many
                 // depots the game has. Only a depot with no declared version is unreachable outright;
-                // a missing manifest is now just a fetch, provided we're signed in to make it.
+                // a missing manifest simply can't be downloaded: no login, no fetch — manifests come
+                // from the depotcache (button installs, pinned installs, or Steam's own copies).
                 // A shared depot has no gid here by design — its manifest lives under the owning app and
                 // is resolved at download time, so a missing id is only fatal when there's nowhere to
                 // look it up. Both checks stay local; the picker still makes zero requests.
@@ -966,7 +967,7 @@ public partial class BuildsViewModel : PagedListViewModel<LuaTileViewModel>
                 string? blocked =
                     mid is null && r.FromAppId is null ? Resources.Strings.Builds_Select_NoManifest
                     : !keys.ContainsKey(r.Id) ? Resources.Strings.Builds_Select_NoKey
-                    : path is null && !_depotTool.CanFetchManifests ? Resources.Strings.Builds_Select_SignIn
+                    : path is null ? Resources.Strings.Depot_Err_NoManifest
                     : null;
 
                 var pick = new DepotPickRow

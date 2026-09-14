@@ -121,48 +121,58 @@ public class ElementApiClient(SteamAppInfoCache appInfo, CoverCache covers)
         IProgress<DownloadProgress>? progress, CancellationToken ct = default)
         => DownloadAsync(appid, "manifest", branch, progress, ct);
 
+    // ── Denuvo fixes (online, lua.tools) ───────────────────────────
+    // Listings + per-game fixes are public. Downloads are login-gated server-side
+    // (401 without a lua.tools session); the app has no login, so the manifest slot
+    // falls back to Hubcap in ManifestJobFactory and the fix slot reports it plainly.
+
+    /// <summary>Public — every game that has at least one Denuvo fix, plus the tag catalogue.</summary>
+    public async Task<DenuvoListingsResponse?> GetDenuvoListingsAsync(CancellationToken ct = default)
+    {
+        var res = await _http.GetAsync($"{AppConfig.LuaToolsApiBaseUrl}/api/denuvo/listings", ct);
+        if (!res.IsSuccessStatusCode) return null;
+        return await ReadJsonAsync<DenuvoListingsResponse>(res, ct);
+    }
+
+    /// <summary>Public — one game's fixes (id/title/desc/tags + which download slots exist).</summary>
+    public async Task<DenuvoFixesResponse?> GetDenuvoFixesAsync(string appid, CancellationToken ct = default)
+    {
+        var res = await _http.GetAsync(
+            $"{AppConfig.LuaToolsApiBaseUrl}/api/denuvo/fixes?appid={Uri.EscapeDataString(appid)}", ct);
+        if (!res.IsSuccessStatusCode) return null; // 404 = no fixes for this appid
+        return await ReadJsonAsync<DenuvoFixesResponse>(res, ct);
+    }
+
     /// <summary>
-    /// Download a lua file for a game (convenience wrapper).
+    /// Login-gated — download a fix's "manifest" or "fix" slot. The endpoint returns a
+    /// short-lived signed URL; the file is then fetched from that URL. Throws a plain
+    /// login message on 401 since the app holds no lua.tools session.
     /// </summary>
-    public Task<DownloadedFile> DownloadLuaAsync(
-        string appid, string? branch,
+    public async Task<DownloadedFile> DownloadDenuvoAsync(
+        string fixId, string slot, string fallbackName,
         IProgress<DownloadProgress>? progress, CancellationToken ct = default)
-        => DownloadAsync(appid, "lua", branch, progress, ct);
-
-    /// <summary>Request an update for a game (premium feature).</summary>
-    public async Task<(bool ok, string? error)> RequestUpdateAsync(string appid, string? branch = "public", CancellationToken ct = default)
     {
-        string url = $"/requestupdate?appid={appid}";
-        if (!string.IsNullOrEmpty(branch)) url += $"&branch={Uri.EscapeDataString(branch)}";
-        var req = new HttpRequestMessage(HttpMethod.Get, url);
-        AddAuthKey(req);
-        var res = await _http.SendAsync(req, ct);
-        if (res.IsSuccessStatusCode) return (true, null);
-        string? detail = await TryReadErrorAsync(res, ct);
-        return (false, detail ?? $"Request failed: {(int)res.StatusCode}");
-    }
-
-    /// <summary>Request a game to be added.</summary>
-    public async Task<(bool ok, string? error)> RequestGameAsync(string appid, CancellationToken ct = default)
-    {
-        var req = new HttpRequestMessage(HttpMethod.Get, $"/request?appid={appid}");
-        AddAuthKey(req);
-        var res = await _http.SendAsync(req, ct);
-        if (res.IsSuccessStatusCode) return (true, null);
-        string? detail = await TryReadErrorAsync(res, ct);
-        return (false, detail ?? $"Request failed: {(int)res.StatusCode}");
-    }
-
-    /// <summary>Request a non-public branch to be added.</summary>
-    public async Task<(bool ok, string? error)> RequestBranchAsync(string appid, string branch, CancellationToken ct = default)
-    {
+        // 1. Ask the API for a signed URL (the login + daily-limit gate lives here).
         var req = new HttpRequestMessage(HttpMethod.Get,
-            $"/requestbranch?appid={appid}&branch={Uri.EscapeDataString(branch)}");
-        AddAuthKey(req);
+            $"{AppConfig.LuaToolsApiBaseUrl}/api/denuvo/download?fix={Uri.EscapeDataString(fixId)}&slot={Uri.EscapeDataString(slot)}");
         var res = await _http.SendAsync(req, ct);
-        if (res.IsSuccessStatusCode) return (true, null);
-        string? detail = await TryReadErrorAsync(res, ct);
-        return (false, detail ?? $"Request failed: {(int)res.StatusCode}");
+        if (res.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            throw new ApiException("Fix downloads require a lua.tools login.", res.StatusCode);
+        if (!res.IsSuccessStatusCode)
+        {
+            string detail = await TryReadErrorAsync(res, ct);
+            throw new ApiException(detail ?? $"Request failed: {(int)res.StatusCode}", res.StatusCode);
+        }
+        var signed = await ReadJsonAsync<DenuvoDownloadResponse>(res, ct);
+        if (string.IsNullOrWhiteSpace(signed?.Url))
+            throw new ApiException("The download link was empty — try again.");
+
+        // 2. Fetch the file from the signed URL (no auth header — the URL carries its own credentials).
+        var fileReq = new HttpRequestMessage(HttpMethod.Get, signed.Url);
+        var fileRes = await _http.SendAsync(fileReq, HttpCompletionOption.ResponseHeadersRead, ct);
+        if (!fileRes.IsSuccessStatusCode)
+            throw new ApiException($"Download failed ({(int)fileRes.StatusCode}).", fileRes.StatusCode);
+        return await HttpFileDownloader.SaveResponseAsync(fileRes, fallbackName, progress, ct);
     }
 
     // ── Plumbing ────────────────────────────────────────────────

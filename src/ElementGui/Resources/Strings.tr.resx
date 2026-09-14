@@ -92,20 +92,6 @@
   <data name="Settings_BotLink_Body" xml:space="preserve"><value>Element</value></data>
   <data name="Settings_BotLink_Dismiss" xml:space="preserve"><value>Kapat</value></data>
   <data name="Settings_LoginRequired" xml:space="preserve"><value>Bu işlem için giriş yapmanız gerekiyor.</value></data>
-  <data name="Settings_ManageKeyHintPrefix" xml:space="preserve"><value>Hubcap API anahtarınızı ve profilinizi şurada yönetin:</value></data>
-  <data name="Settings_Section_Hubcap" xml:space="preserve"><value>HUBCAP</value></data>
-  <data name="Settings_HubcapKey" xml:space="preserve"><value>Hubcap API anahtarı</value></data>
-  <data name="Settings_HubcapKey_Hint" xml:space="preserve"><value>Hubcap manifestolarının kilidini açmak için kişisel Hubcap API anahtarınızı yapıştırın. Uygulama, anahtarınızla doğrudan Hubcap'e bağlanır.</value></data>
-  <data name="Settings_HubcapKeyPlaceholder" xml:space="preserve"><value>API anahtarınızı yapıştırın (smm_…)</value></data>
-  <data name="Settings_HubcapValidate" xml:space="preserve"><value>Doğrula ve kaydet</value></data>
-  <data name="Settings_HubcapClear" xml:space="preserve"><value>Temizle</value></data>
-  <data name="Settings_HubcapGetKey" xml:space="preserve"><value>Anahtar alın:</value></data>
-  <data name="Settings_HubcapKeyOk" xml:space="preserve"><value>Bugün {0}/{1} istek</value></data>
-  <data name="Settings_HubcapKeyOkExpiry" xml:space="preserve"><value>Bugün {0}/{1} · {2} tarihinde sona erer</value></data>
-  <data name="Settings_HubcapKeyBad" xml:space="preserve"><value>Bu geçerli bir anahtara benzemiyor (smm_…).</value></data>
-  <data name="Settings_HubcapKeyError" xml:space="preserve"><value>Anahtar doğrulanamadı — geçersiz, süresi dolmuş olabilir veya Hubcap'e ulaşılamıyor.</value></data>
-  <data name="Settings_HubcapActive" xml:space="preserve"><value>Aktif</value></data>
-  <data name="Settings_HubcapRefresh" xml:space="preserve"><value>Yenile</value></data>
   <data name="Settings_Language" xml:space="preserve"><value>Dil</value></data>
   <data name="Settings_Language_Hint" xml:space="preserve"><value>Uygulamanın görüntüleme dilini seçin. Yeniden başlatmadan sonra uygulanır.</value></data>
   <data name="Settings_Language_SystemDefault" xml:space="preserve"><value>Sistem varsayılanı</value></data>
@@ -115,6 +101,8 @@
   <data name="Settings_ResetToAuto" xml:space="preserve"><value>Otomatiğe sıfırla</value></data>
   <data name="Settings_AutoUpdateApps" xml:space="preserve"><value>Uygulamaları otomatik güncelle (manifestoları kilitleme)</value></data>
   <data name="Settings_AutoUpdateApps_Hint" xml:space="preserve"><value>Bir sürümü sabitlemeden kurar, böylece Steam oyunları güncel tutar. Oyunları indirilen sürüme kilitlemek için kapatın.</value></data>
+  <data name="Settings_BuiltInButtonMode" xml:space="preserve"><value>Yerleşik Düğme Modu</value></data>
+  <data name="Settings_BuiltInButtonMode_Hint" xml:space="preserve"><value>"Add with Element" mağaza düğmesinin hangi API'yi kullanacağı. Hubcap önerilir.</value></data>
   <data name="Settings_DonateKeys" xml:space="preserve"><value>Şifre çözme anahtarları bağışla</value></data>
   <data name="Settings_DonateKeys_Hint" xml:space="preserve"><value>Topluluk havuzunu büyütmek için fazlalık Steam depo şifre çözme anahtarlarını paylaşın. Yalnızca doğrulanmış anahtarlar gönderilir — hesap bilgisi veya kişisel veri içermez.</value></data>
   <data name="Settings_SteamNotFound" xml:space="preserve"><value>Steam bulunamadı</value></data>
@@ -126,6 +114,81 @@
   <data name="Lang_Changed_Title" xml:space="preserve"><value>Dil değiştirildi</value></data>
   <data name="Lang_Changed_Body" xml:space="preserve"><value>Yeni dili uygulamak için uygulamayı yeniden başlatın.</value></data>
   <data name="Lang_Changed_Restart" xml:space="preserve"><value>Şimdi yeniden başlat</value></data>
+  <data name="ButtonMode_Changed_Title" xml:space="preserve"><value>Düğme modu değiştirildi</value></data>
+  <data name="ButtonMode_Changed_Body" xml:space="preserve"><value>Yeni yerleşik düğme modunu uygulamak için Steam'i yeniden başlatın.</value></data>
+  <data name="Settings_BlockSteamUpdates" xml:space="preserve"><value>Steam otomatik güncellemelerini engelle</value></data>
+  <data name="Settings_BlockSteamUpdates_Hint" xml:space="preserve"><value>Steam'in oyunları otomatik olarak güncellemesini önlemek için steam.cfg dosyasına BootStrapperInhibitAll=Enable yazar. Etkin olması için Steam'in yeniden başlatılması gerekir.</value></data>
+  <data name="SteamCfg_Changed_Title" xml:space="preserve"><value>Steam güncellemeleri engellendi</value></data>
+  <data name="SteamCfg_Changed_Body" xml:space="preserve"><value>Engellemenin etkili olması için Steam'i yeniden başlatın.</value></data>
+  <data name="SteamCfg_Removed_Title" xml:space="preserve"><value>Steam güncellemeleri serbest bırakıldı</value></data>
+  <data name="SteamCfg_Removed_Body" xml:space="preserve"><value>Değişikliğin etkili olması için Steam'i yeniden başlatın.</value></data>
+  <data name="Settings_CleanSteamCache" xml:space="preserve"><value>Steam önbelleğini temizle</value></data>
+  <data name="Settings_CleanSteamCache_Hint" xml:space="preserve"><value>appcache, depotcache, htmlcache, librarycache, logs, shadercache, downloads ve geçici userdata dosyalarını siler. Steam yeniden başlatılacak.</value></data>
+  <data name="Settings_CleanSteamCache_Btn" xml:space="preserve"><value>Temizle</value></data>
+  <data name="Settings_CleanSteamCache_Confirm" xml:space="preserve"><value>Bu, Steam'in önbelleğini temizleyecek ve Steam'i tamamen yeniden başlatacak. Devam edilsin mi?</value></data>
+  <data name="SteamCache_Cleaned_Title" xml:space="preserve"><value>Steam önbelleği temizlendi</value></data>
+  <data name="SteamCache_Cleaned_Body" xml:space="preserve"><value>Tüm önbellek klasörleri silindi. Steam yeniden başlatıldı.</value></data>
+  <data name="SteamCache_Cleaning_Body" xml:space="preserve"><value>Önbellek klasörleri temizleniyor. Steam yeniden başlatılacak…</value></data>
+  <data name="Nav_Cloud" xml:space="preserve"><value>Bulut</value></data>
+  <data name="Cloud_Title" xml:space="preserve"><value>Bulut</value></data>
+  <data name="Cloud_Section_Setup" xml:space="preserve"><value>KURULUM</value></data>
+  <data name="Cloud_Section_General" xml:space="preserve"><value>GENEL</value></data>
+  <data name="Cloud_Section_Provider" xml:space="preserve"><value>BULUT SAĞLAYICI</value></data>
+  <data name="Cloud_Section_Status" xml:space="preserve"><value>DURUM</value></data>
+  <data name="Cloud_Section_LocalFolder" xml:space="preserve"><value>YEREL KLASÖR</value></data>
+  <data name="Cloud_DllStatus" xml:space="preserve"><value>CloudRedirect DLL</value></data>
+  <data name="Cloud_Install" xml:space="preserve"><value>Yükle</value></data>
+  <data name="Cloud_Uninstall" xml:space="preserve"><value>Kaldır</value></data>
+  <data name="Cloud_Installed" xml:space="preserve"><value>Yüklü</value></data>
+  <data name="Cloud_NotInstalled" xml:space="preserve"><value>Yüklü değil</value></data>
+  <data name="Cloud_SteamNotFound" xml:space="preserve"><value>Steam bulunamadı</value></data>
+  <data name="Cloud_Enabled" xml:space="preserve"><value>Bulut yönlendirmesini etkinleştir</value></data>
+  <data name="Cloud_Enabled_Hint" xml:space="preserve"><value>lua oyunları için Steam Cloud kayıtlarını bulut sağlayıcınıza yönlendir.</value></data>
+  <data name="Cloud_AutoSync" xml:space="preserve"><value>Oyun çıkışında otomatik senkronize et</value></data>
+  <data name="Cloud_AutoSync_Hint" xml:space="preserve"><value>Oyunu kapattığınızda kayıtları otomatik olarak yükleyin.</value></data>
+  <data name="Cloud_Provider" xml:space="preserve"><value>Bulut sağlayıcı</value></data>
+  <data name="Cloud_Provider_Hint" xml:space="preserve"><value>Bulut kayıtlarınızı nerede saklayacağınızı seçin.</value></data>
+  <data name="Cloud_Path" xml:space="preserve"><value>Sağlayıcı yolu</value></data>
+  <data name="Cloud_Path_Hint" xml:space="preserve"><value>Bulut depolama alanında isteğe bağlı alt klasör.</value></data>
+  <data name="Cloud_Path_Placeholder" xml:space="preserve"><value>steam-kayitlari</value></data>
+  <data name="Cloud_LocalPath" xml:space="preserve"><value>Yerel klasör</value></data>
+  <data name="Cloud_LocalPath_Hint" xml:space="preserve"><value>Bulut depolama olarak yerel bir klasör veya eşlenmiş sürücü seçin.</value></data>
+  <data name="Cloud_S3Endpoint" xml:space="preserve"><value>S3 Endpoint</value></data>
+  <data name="Cloud_S3Endpoint_Hint" xml:space="preserve"><value>S3 uyumlu endpoint URL'si.</value></data>
+  <data name="Cloud_S3Bucket" xml:space="preserve"><value>Kovad adı</value></data>
+  <data name="Cloud_S3Bucket_Hint" xml:space="preserve"><value>Kayıtları saklamak için kova.</value></data>
+  <data name="Cloud_S3AccessKey" xml:space="preserve"><value>Erişim anahtarı</value></data>
+  <data name="Cloud_S3SecretKey" xml:space="preserve"><value>Gizli anahtar</value></data>
+  <data name="Cloud_S3Prefix" xml:space="preserve"><value>Anahtar ön eki</value></data>
+  <data name="Cloud_S3Prefix_Hint" xml:space="preserve"><value>Kova içindeki tüm anahtarlar için isteğe bağlı ön ek.</value></data>
+  <data name="Cloud_SelectFolder" xml:space="preserve"><value>Klasör seç</value></data>
+  <data name="Cloud_Status" xml:space="preserve"><value>Bağlantı durumu</value></data>
+  <data name="Cloud_Check" xml:space="preserve"><value>Kontrol et</value></data>
+  <data name="Cloud_Status_Checking" xml:space="preserve"><value>Kontrol ediliyor…</value></data>
+  <data name="Cloud_Status_Connected" xml:space="preserve"><value>Bağlandı ({0})</value></data>
+  <data name="Cloud_Status_Failed" xml:space="preserve"><value>Hata (HTTP {0})</value></data>
+  <data name="Cloud_Status_Timeout" xml:space="preserve"><value>Bağlantı zaman aşımı</value></data>
+  <data name="Cloud_Status_Unreachable" xml:space="preserve"><value>Sunucuya ulaşılamıyor</value></data>
+  <data name="Cloud_Status_Ready" xml:space="preserve"><value>Hazır — yardımcı uygulamada oturum açın</value></data>
+  <data name="Cloud_Status_LocalOk" xml:space="preserve"><value>Klasör mevcut ve erişilebilir</value></data>
+  <data name="Cloud_Status_PathNotFound" xml:space="preserve"><value>Klasör bulunamadı</value></data>
+  <data name="Cloud_Status_MissingConfig" xml:space="preserve"><value>Endpoint ve kova gereklidir</value></data>
+  <data name="Cloud_Log_SteamNotFound" xml:space="preserve"><value>Steam yolu bulunamadı. Ayarlardan Steam yolunu ayarlayın.</value></data>
+  <data name="Cloud_Log_SteamPath" xml:space="preserve"><value>Steam yolu: {0}</value></data>
+  <data name="Cloud_Log_CheckingRelease" xml:space="preserve"><value>Son CloudRedirect sürümü kontrol ediliyor…</value></data>
+  <data name="Cloud_Log_LatestVersion" xml:space="preserve"><value>Son sürüm: {0}</value></data>
+  <data name="Cloud_Log_ReleaseFailed" xml:space="preserve"><value>Son sürüm alınamadı.</value></data>
+  <data name="Cloud_Log_DllNotFound" xml:space="preserve"><value>cloud_redirect.dll kaynaklarda bulunamadı.</value></data>
+  <data name="Cloud_Log_Downloading" xml:space="preserve"><value>{0} indiriliyor…</value></data>
+  <data name="Cloud_Log_Downloaded" xml:space="preserve"><value>{0} bayt indirildi.</value></data>
+  <data name="Cloud_Log_StoppingSteam" xml:space="preserve"><value>Steam durduruluyor…</value></data>
+  <data name="Cloud_Log_RestartingSteam" xml:space="preserve"><value>Steam yeniden başlatılıyor…</value></data>
+  <data name="Cloud_Log_Deployed" xml:space="preserve"><value>{0} konumuna dağıtıldı</value></data>
+  <data name="Cloud_Log_Done" xml:space="preserve"><value>Kurulum tamamlandı.</value></data>
+  <data name="Cloud_Log_Error" xml:space="preserve"><value>Kurulum sırasında hata.</value></data>
+  <data name="Cloud_Log_DllAlreadyRemoved" xml:space="preserve"><value>DLL zaten kaldırıldı.</value></data>
+  <data name="Cloud_Log_Removed" xml:space="preserve"><value>{0} kaldırıldı</value></data>
+  <data name="Cloud_Log_UninstallDone" xml:space="preserve"><value>Kaldırma tamamlandı.</value></data>
   <data name="Home_Welcome" xml:space="preserve"><value>Element'a hoş geldiniz</value></data>
   <data name="Home_LuasOnBoard" xml:space="preserve"><value>Eklenen Lua'lar</value></data>
   <data name="Home_LastAdded" xml:space="preserve"><value>SON EKLENEN</value></data>
@@ -148,25 +211,10 @@
   <data name="Mode_Confirm_Body" xml:space="preserve"><value>Dosyalarının değiştirilebilmesi için Steam kapatılacak, ardından otomatik olarak yeniden başlatılacaktır. Çalışan tüm oyunlar veya indirmeler duracaktır.</value></data>
   <data name="Mode_Cancel" xml:space="preserve"><value>İptal</value></data>
   <data name="Mode_CloseSteamContinue" xml:space="preserve"><value>Steam'i kapat ve devam et</value></data>
-  <data name="Mode_Desc_Element" xml:space="preserve"><value>Element Steam kancası, kaynaktan derlenir. Lua yükleme, CloudRedirect desteği ve daha fazlasını sağlar.</value></data>
-  <data name="Mode_CloudRedirect_Manage" xml:space="preserve"><value>Yönet</value></data>
-  <data name="Mode_CloudRedirect_LaunchFailed" xml:space="preserve"><value>CloudRedirect indirilemedi veya başlatılamadı.</value></data>
   <data name="Mode_UserManaged" xml:space="preserve"><value>Gerisi sana kalmış</value></data>
   <data name="Mode_Desc_Custom" xml:space="preserve"><value>Kendi kilit açma çözümünü kullan, ona karışmayacağız</value></data>
   <data name="Mode_Name_Custom" xml:space="preserve"><value>Özel kilit açıcı</value></data>
   <data name="Mode_Experimental" xml:space="preserve"><value>DENEYSEL</value></data>
-  <data name="Mode_CloudRedirectSupport" xml:space="preserve"><value>CLOUDREDIRECT DESTEĞİ</value></data>
-  <data name="Mode_CloudRedirect_AddonDesc" xml:space="preserve"><value>Google Drive / OneDrive / Cloudflare R2 gibi üçüncü taraf depolama sağlayıcıları aracılığıyla yerleşik Steam Cloud desteğini geri getirir. Şu anda yalnızca Element ile uyumludur. Etkinleştirdikten sonra "Yönet"e tıklayarak yapılandırmayı ve ardından Steam'i yeniden başlatmayı unutmayın!</value></data>
-  <data name="Mode_CloudRedirect_Locked" xml:space="preserve"><value>CloudRedirect'i kullanmak için Element'i seçin.</value></data>
-  <data name="Mode_CloudRedirect_Enable" xml:space="preserve"><value>Etkinleştir</value></data>
-  <data name="Mode_CloudRedirect_Disable" xml:space="preserve"><value>Devre dışı bırak</value></data>
-  <data name="Mode_CloudRedirect_Status_Enabled" xml:space="preserve"><value>Etkin.</value></data>
-  <data name="Mode_CloudRedirect_Status_Disabled" xml:space="preserve"><value>Yüklü ama devre dışı.</value></data>
-  <data name="Mode_CloudRedirect_Status_NotInstalled" xml:space="preserve"><value>Henüz yüklü değil.</value></data>
-  <data name="Mode_CloudRedirect_Status_UpdateAvailable" xml:space="preserve"><value>Güncelleme mevcut.</value></data>
-  <data name="Mode_CloudRedirect_Toast_Enabled" xml:space="preserve"><value>Etkinleştirildi — uygulamak için Steam'i yeniden başlatın.</value></data>
-  <data name="Mode_CloudRedirect_Toast_Disabled" xml:space="preserve"><value>Devre dışı bırakıldı — uygulamak için Steam'i yeniden başlatın.</value></data>
-  <data name="Mode_CloudRedirect_Toast_Updated" xml:space="preserve"><value>Güncellendi — uygulamak için Steam'i yeniden başlatın.</value></data>
   <data name="Onboarding_Title" xml:space="preserve"><value>Element uygulamasına hoş geldiniz!</value></data>
   <data name="Onboarding_SignIn_Blurb" xml:space="preserve"><value>Oyun ve düzeltme eklemeyi açmak için giriş yapın.</value></data>
   <data name="Onboarding_SignedIn" xml:space="preserve"><value>Giriş yapıldı ✓</value></data>
@@ -324,6 +372,7 @@ Bu, .lua dosyalarını Steam\config\stplug-in konumundan siler.</value></data>
   <data name="Add_Checking" xml:space="preserve"><value>Denetleniyor…</value></data>
   <data name="Add_Reveal" xml:space="preserve"><value>Göster</value></data>
   <data name="Add_Supporter" xml:space="preserve"><value>Supporter</value></data>
+  <data name="Add_Recommended" xml:space="preserve"><value>ÖNERİLEN</value></data>
   <data name="Add_Unlimited" xml:space="preserve"><value>Sınırsız</value></data>
   <data name="Add_RequiresOwnKey" xml:space="preserve"><value>Kendi API anahtarınızı gerektirir</value></data>
   <data name="Add_Discord" xml:space="preserve"><value>Element</value></data>
@@ -518,10 +567,6 @@ Bu, .lua dosyalarını Steam\config\stplug-in konumundan siler.</value></data>
   <data name="Api_Err_DownloadFailed" xml:space="preserve"><value>İndirme başarısız ({0}).</value></data>
   <data name="Api_Err_RequestFailed" xml:space="preserve"><value>İstek başarısız ({0})</value></data>
   <data name="Api_Err_SessionExpired" xml:space="preserve"><value>Oturum süresi doldu. Lütfen tekrar giriş yap.</value></data>
-  <data name="Hubcap_Err_InvalidKey" xml:space="preserve"><value>Hubcap anahtarın geçersiz veya süresi dolmuş.</value></data>
-  <data name="Hubcap_Err_LimitReached" xml:space="preserve"><value>Günlük Hubcap sınırına ulaştın.</value></data>
-  <data name="Hubcap_Err_NoManifest" xml:space="preserve"><value>Bu uygulama için Hubcap manifesti yok.</value></data>
-  <data name="Hubcap_Err_DownloadFailed" xml:space="preserve"><value>Hubcap indirmesi başarısız ({0}).</value></data>
   <data name="Nav_Downloads" xml:space="preserve"><value>İndirmeler</value></data>
   <data name="Downloads_Title" xml:space="preserve"><value>İndirmeler</value></data>
   <data name="Downloads_Empty" xml:space="preserve"><value>Şu anda indirme yok. Hadi, bir şeyler indir!</value></data>

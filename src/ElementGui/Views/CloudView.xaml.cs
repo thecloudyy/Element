@@ -3,12 +3,11 @@ using ElementGui.ViewModels;
 
 namespace ElementGui.Views;
 
-public partial class ModeView : UserControl
+public partial class CloudView : UserControl
 {
-    public ModeView(ModeViewModel viewModel)
+    public CloudView(CloudViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;
-        Loaded += async (_, _) => await viewModel.LoadAsync();
     }
 }
