@@ -1,0 +1,418 @@
+using System.IO;
+using System.Text.Json;
+
+namespace ElementGui.Services;
+
+public class AppSettings
+{
+    public string? SteamPathOverride { get; set; }
+
+    // Hubcap API key (smm_…). Nullable so "never set" is distinguishable from explicit clear.
+    public string? HubcapKey { get; set; }
+
+    // ── Unlocker mode (Mode page). User's chosen backend ────────────
+    // "Ost" | "Bst" | "Custom". Older builds wrote "SteamTools" | "OpenSteamTools" |
+    // "OpenSteamToolsNightly" | "CloudRedirect"; see ModeMigration, which rewrites those on startup.
+    public string? SelectedMode { get; set; }
+
+    // ── Install behavior ─────────────────────────────────────────────
+    // When true (default), installs comment out setManifestid() lines and skip copying .manifest
+    // files, so games aren't pinned to a version and Steam keeps them updated. Nullable so we can
+    // tell "never set" (→ default ON) from an explicit user choice.
+    public bool? AutoUpdateApps { get; set; }
+
+    // When true (default), missing depot manifests are auto-downloaded via
+    // ManifestDeX request codes + Steam CDN instead of aborting the job.
+    // Nullable so "never set" (→ default ON) is distinguishable.
+    public bool? AutoDownloadManifests { get; set; }
+
+
+
+    // Manage-page results-per-page. 0 = "All" (single infinite scroll). Nullable so "never set"
+    // (→ default 24) is distinguishable from an explicit choice.
+    public int? ManagePageSize { get; set; }
+
+    // Fixes-page results-per-page. 0 = "All" (single infinite scroll). Nullable so "never set"
+    // (→ default 24) is distinguishable from an explicit choice.
+    public int? FixesPageSize { get; set; }
+
+    // Builds-page game-list results-per-page. 0 = "All". Kept separate from ManagePageSize. The Builds
+    // list is a narrow sidebar, so a size that suits the Manage grid rarely suits both.
+    public int? BuildsPageSize { get; set; }
+
+    // UI language as a BCP-47 tag ("en", "zh-Hans"). Null = follow the Windows display language.
+    public string? Language { get; set; }
+
+    // When true, register the app to launch on Windows sign-in (HKCU …\Run). Nullable so "never set"
+    // (→ default OFF) is distinguishable from an explicit choice.
+    public bool? StartWithWindows { get; set; }
+
+    // When true, minimizing hides the window to the system tray instead of the taskbar. Nullable so
+    // "never set" (→ default OFF) is distinguishable from an explicit choice.
+    public bool? MinimizeToTray { get; set; }
+
+    // Built-in button mode: which API the "Add with Element" store button uses.
+    // "Hubcap" (default) or "Ryuu". Nullable so "never set" (→ Hubcap) is distinguishable.
+    public string? BuiltInButtonMode { get; set; }
+
+    // When true, a steam.cfg with BootStrapperInhibitAll=Enable blocks Steam auto-updates.
+    // Nullable so "never set" (→ default OFF) is distinguishable from an explicit choice.
+    public bool? BlockSteamUpdates { get; set; }
+
+    // Cloud redirect settings.
+    public bool? CloudEnabled { get; set; }
+    public string? CloudProvider { get; set; }  // "GoogleDrive" | "OneDrive" | "CloudflareR2" | "S3" | "Local"
+    public bool? CloudAutoSync { get; set; }
+    // Steam Metadata & Statistics Sync toggles. Nullable so "never set" (→ default ON) is distinguishable.
+    public bool? CloudAchievementsSync { get; set; }
+    public bool? CloudPlaytimeSync { get; set; }
+    public bool? CloudLuaSync { get; set; }
+    public bool? CloudSchemaFetch { get; set; }
+    public string? CloudPath { get; set; }      // provider path (Google Drive / OneDrive subfolder)
+    public string? CloudLocalPath { get; set; } // local folder path for Local provider
+    public string? CloudS3Endpoint { get; set; }
+    public string? CloudS3Bucket { get; set; }
+    public string? CloudS3AccessKey { get; set; }
+    public string? CloudS3SecretKey { get; set; }
+    public string? CloudS3Prefix { get; set; }
+
+    // Manual game-install overrides: appid (string) -> install folder picked by the user in the
+    // Fixes page popup when auto-detection via Steam libraries fails.
+    public Dictionary<string, string>? ManualInstallDirs { get; set; }
+
+}
+
+public class SettingsService
+{
+    private static readonly string Dir =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ElementGui");
+    private static readonly string FilePath = Path.Combine(Dir, "settings.json");
+
+    private AppSettings _settings = new();
+
+    public SettingsService() => Load();
+
+    /// <summary>User-chosen Steam folder. Null = auto-detect from registry. Persisted only when set.</summary>
+    public string? SteamPathOverride
+    {
+        get => _settings.SteamPathOverride;
+        set
+        {
+            _settings.SteamPathOverride = string.IsNullOrWhiteSpace(value) ? null : value;
+            Save();
+        }
+    }
+
+    /// <summary>Selected unlocker backend ("SteamTools" | "OpenSteamTools"), or null if never chosen.</summary>
+    public string? SelectedMode
+    {
+        get => _settings.SelectedMode;
+        set { _settings.SelectedMode = string.IsNullOrWhiteSpace(value) ? null : value; Save(); }
+    }
+
+    /// <summary>Hubcap API key (smm_…), or null if never set. Used as Bearer for hubcapmanifest.com.</summary>
+    public string? HubcapKey
+    {
+        get => _settings.HubcapKey;
+        set { _settings.HubcapKey = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>When true (default), installs don't lock manifests so apps keep auto-updating.</summary>
+    public bool AutoUpdateApps
+    {
+        get => _settings.AutoUpdateApps ?? true; // default ON
+        set { _settings.AutoUpdateApps = value; Save(); }
+    }
+
+    /// <summary>When true (default), missing depot manifests auto-download instead of aborting the job.</summary>
+    public bool AutoDownloadManifests
+    {
+        get => _settings.AutoDownloadManifests ?? true; // default ON
+        set { _settings.AutoDownloadManifests = value; Save(); }
+    }
+
+    /// <summary>Manage-page results-per-page (default 24). 0 = "All" (single infinite scroll).</summary>
+    public int ManagePageSize
+    {
+        get => _settings.ManagePageSize ?? 24; // default 24
+        set { _settings.ManagePageSize = value; Save(); }
+    }
+
+    /// <summary>Fixes-page results-per-page (default 24). 0 = "All" (single infinite scroll).</summary>
+    public int FixesPageSize
+    {
+        get => _settings.FixesPageSize ?? 24; // default 24
+        set { _settings.FixesPageSize = value; Save(); }
+    }
+
+    /// <summary>Builds-page game-list results-per-page (default 10). 0 = "All". Smaller than the other
+    /// pages' 24. This list is a narrow sidebar next to the build detail, not a full-width grid.</summary>
+    public int BuildsPageSize
+    {
+        get => _settings.BuildsPageSize ?? 10; // default 10
+        set { _settings.BuildsPageSize = value; Save(); }
+    }
+
+    /// <summary>UI language tag ("en" | "zh-Hans"), or null to follow the Windows display language.</summary>
+    public string? Language
+    {
+        get => _settings.Language;
+        set { _settings.Language = string.IsNullOrWhiteSpace(value) ? null : value; Save(); }
+    }
+
+    /// <summary>When true, the app is registered to launch on Windows sign-in (default OFF).</summary>
+    public bool StartWithWindows
+    {
+        get => _settings.StartWithWindows ?? false; // default OFF
+        set { _settings.StartWithWindows = value; Save(); }
+    }
+
+    /// <summary>When true, minimizing hides the window to the system tray (default OFF).</summary>
+    public bool MinimizeToTray
+    {
+        get => _settings.MinimizeToTray ?? false; // default OFF
+        set { _settings.MinimizeToTray = value; Save(); }
+    }
+
+    /// <summary>Which API the "Add with Element" store button uses ("Hubcap" default, or "Ryuu").</summary>
+    public string BuiltInButtonMode
+    {
+        get => string.IsNullOrWhiteSpace(_settings.BuiltInButtonMode) ? "Hubcap" : _settings.BuiltInButtonMode!;
+        set { _settings.BuiltInButtonMode = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>When true, writes BootStrapperInhibitAll=Enable to steam.cfg to block Steam auto-updates.</summary>
+    public bool BlockSteamUpdates
+    {
+        get => _settings.BlockSteamUpdates ?? false; // default OFF
+        set { _settings.BlockSteamUpdates = value; Save(); }
+    }
+
+    /// <summary>When true, Cloud redirect is enabled.</summary>
+    public bool CloudEnabled
+    {
+        get => _settings.CloudEnabled ?? false; // default OFF
+        set { _settings.CloudEnabled = value; Save(); }
+    }
+
+    /// <summary>Selected cloud provider ("GoogleDrive" | "OneDrive" | "CloudflareR2" | "S3" | "Local").</summary>
+    public string CloudProvider
+    {
+        get => string.IsNullOrWhiteSpace(_settings.CloudProvider) ? "GoogleDrive" : _settings.CloudProvider!;
+        set { _settings.CloudProvider = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>When true, auto-sync saves on game exit.</summary>
+    public bool CloudAutoSync
+    {
+        get => _settings.CloudAutoSync ?? true; // default ON
+        set { _settings.CloudAutoSync = value; Save(); }
+    }
+
+    /// <summary>When true (default), achievements sync across devices via the provider.</summary>
+    public bool CloudAchievementsSync
+    {
+        get => _settings.CloudAchievementsSync ?? true; // default ON
+        set { _settings.CloudAchievementsSync = value; Save(); }
+    }
+
+    /// <summary>When true (default), playtime syncs across devices via the provider.</summary>
+    public bool CloudPlaytimeSync
+    {
+        get => _settings.CloudPlaytimeSync ?? true; // default ON
+        set { _settings.CloudPlaytimeSync = value; Save(); }
+    }
+
+    /// <summary>When true (default), lua manifest metadata syncs across devices.</summary>
+    public bool CloudLuaSync
+    {
+        get => _settings.CloudLuaSync ?? true; // default ON
+        set { _settings.CloudLuaSync = value; Save(); }
+    }
+
+    /// <summary>When true (default), the Steam UserGameStats schema is fetched when unavailable.</summary>
+    public bool CloudSchemaFetch
+    {
+        get => _settings.CloudSchemaFetch ?? true; // default ON
+        set { _settings.CloudSchemaFetch = value; Save(); }
+    }
+
+    /// <summary>Cloud provider path/subfolder, or null if never set.</summary>
+    public string? CloudPath
+    {
+        get => _settings.CloudPath;
+        set { _settings.CloudPath = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>Local folder path for Local provider, or null if never set.</summary>
+    public string? CloudLocalPath
+    {
+        get => _settings.CloudLocalPath;
+        set { _settings.CloudLocalPath = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>S3 endpoint, or null if never set.</summary>
+    public string? CloudS3Endpoint
+    {
+        get => _settings.CloudS3Endpoint;
+        set { _settings.CloudS3Endpoint = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>S3 bucket name, or null if never set.</summary>
+    public string? CloudS3Bucket
+    {
+        get => _settings.CloudS3Bucket;
+        set { _settings.CloudS3Bucket = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>S3 access key, or null if never set.</summary>
+    public string? CloudS3AccessKey
+    {
+        get => _settings.CloudS3AccessKey;
+        set { _settings.CloudS3AccessKey = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>S3 secret key, or null if never set.</summary>
+    public string? CloudS3SecretKey
+    {
+        get => _settings.CloudS3SecretKey;
+        set { _settings.CloudS3SecretKey = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>S3 key prefix, or null if never set.</summary>
+    public string? CloudS3Prefix
+    {
+        get => _settings.CloudS3Prefix;
+        set { _settings.CloudS3Prefix = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>Manual install folder for a game (set via the Fixes popup), or null.</summary>
+    public string? GetManualInstallDir(long appId)
+    {
+        if (_settings.ManualInstallDirs is not null
+            && _settings.ManualInstallDirs.TryGetValue(appId.ToString(), out string? dir)
+            && !string.IsNullOrWhiteSpace(dir)
+            && Directory.Exists(dir))
+            return dir;
+        return null;
+    }
+
+    public void SetManualInstallDir(long appId, string dir)
+    {
+        _settings.ManualInstallDirs ??= new Dictionary<string, string>();
+        _settings.ManualInstallDirs[appId.ToString()] = dir;
+        Save();
+    }
+
+    public void ClearManualInstallDir(long appId)
+    {
+        if (_settings.ManualInstallDirs?.Remove(appId.ToString()) == true) Save();
+    }
+
+    /// <summary>Every stored manual override (appid -> folder), pruned to folders still on disk.</summary>
+    public IReadOnlyDictionary<long, string> GetManualInstallDirs()
+    {
+        var result = new Dictionary<long, string>();
+        if (_settings.ManualInstallDirs is null) return result;
+        foreach (var (k, v) in _settings.ManualInstallDirs)
+        {
+            if (long.TryParse(k, out long id) && !string.IsNullOrWhiteSpace(v) && Directory.Exists(v))
+                result[id] = v;
+        }
+        return result;
+    }
+
+    private static readonly string TmpPath = FilePath + ".tmp";
+    private static readonly string BakPath = FilePath + ".bak";
+
+    private void Load()
+    {
+        // Prefer the primary file; fall back to the last-good .bak. Crucially, NEVER silently reset a
+        // corrupt-but-present file to defaults (a later Save would then overwrite it and lose real data).
+        // Move it aside to .corrupt so it's preserved and can't be clobbered.
+        if (TryLoad(FilePath)) return;
+        PreserveCorrupt(FilePath);
+        if (TryLoad(BakPath)) return;
+        _settings = new AppSettings();
+    }
+
+    private bool TryLoad(string path)
+    {
+        try
+        {
+            if (!File.Exists(path)) return false;
+            if (JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(path)) is { } loaded)
+            {
+                _settings = loaded;
+                return true;
+            }
+        }
+        catch { /* missing / truncated / invalid JSON → caller falls through */ }
+        return false;
+    }
+
+    /// <summary>A present-but-unparseable settings file is moved aside (not deleted) so its contents survive
+    /// for manual recovery and a subsequent Save can't overwrite it.</summary>
+    private static void PreserveCorrupt(string path)
+    {
+        try
+        {
+            if (File.Exists(path) && new FileInfo(path).Length > 0)
+                File.Move(path, path + ".corrupt", overwrite: true);
+        }
+        catch { /* best effort */ }
+    }
+
+    private void Save()
+    {
+        // Nothing worth persisting → don't leave a settings file behind.
+        // Every persisted field must be listed here. A field left out is treated as "nothing worth
+        // keeping", so a user whose ONLY change was that setting gets the file deleted and the setting
+        // silently lost on the next save. (FixesPageSize was missing.)
+        bool empty = _settings.SteamPathOverride is null
+            && _settings.SelectedMode is null
+            && _settings.AutoUpdateApps is null
+            && _settings.AutoDownloadManifests is null
+            && _settings.ManagePageSize is null
+            && _settings.FixesPageSize is null
+            && _settings.BuildsPageSize is null
+            && _settings.Language is null
+            && _settings.StartWithWindows is null
+            && _settings.MinimizeToTray is null
+            && _settings.HubcapKey is null
+            && _settings.BuiltInButtonMode is null
+            && _settings.BlockSteamUpdates is null
+            && _settings.CloudEnabled is null
+            && _settings.CloudProvider is null
+            && _settings.CloudAutoSync is null
+            && _settings.CloudAchievementsSync is null
+            && _settings.CloudPlaytimeSync is null
+            && _settings.CloudLuaSync is null
+            && _settings.CloudSchemaFetch is null
+            && _settings.CloudPath is null
+            && _settings.CloudLocalPath is null
+            && _settings.CloudS3Endpoint is null
+            && _settings.CloudS3Bucket is null
+            && _settings.CloudS3AccessKey is null
+            && _settings.CloudS3SecretKey is null
+            && _settings.CloudS3Prefix is null
+            && (_settings.ManualInstallDirs is null || _settings.ManualInstallDirs.Count == 0);
+        if (empty)
+        {
+            foreach (var p in new[] { FilePath, BakPath, TmpPath })
+                try { if (File.Exists(p)) File.Delete(p); } catch { /* best effort */ }
+            return;
+        }
+
+        Directory.CreateDirectory(Dir);
+        string json = JsonSerializer.Serialize(_settings, new JsonSerializerOptions { WriteIndented = true });
+
+        // Atomic write: fill a temp file, then rename it over the target. A crash/kill mid-write can only
+        // ever truncate the .tmp. The live settings.json is replaced by an atomic move (same-volume rename)
+        // and is therefore never left half-written. (This class of loss is exactly what a forced kill during
+        // a plain WriteAllText caused.) A .bak of the last good file is kept as a second recovery source.
+        File.WriteAllText(TmpPath, json);
+        try { if (File.Exists(FilePath)) File.Copy(FilePath, BakPath, overwrite: true); } catch { /* best effort */ }
+        File.Move(TmpPath, FilePath, overwrite: true);
+    }
+}
