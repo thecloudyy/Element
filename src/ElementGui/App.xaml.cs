@@ -1,0 +1,544 @@
+using System.Windows;
+using System.Windows.Threading;
+using ElementGui.Models;
+using ElementGui.Services;
+using ElementGui.ViewModels;
+using ElementGui.Views;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+namespace ElementGui;
+
+public partial class App : Application
+{
+    private readonly IHost _host;
+
+    // True when the app was cold-started solely to run a silent install AND MinimizeToTray is off,
+    // which means we auto-exit after the balloon so we don't leave a ghost tray icon behind.
+    private bool _exitAfterSilentInstall;
+
+    public App()
+    {
+        _host = Host.CreateDefaultBuilder()
+            .ConfigureServices(services =>
+            {
+                services.AddSingleton<SettingsService>();
+                services.AddSingleton<CacheService>();
+                services.AddSingleton<SteamService>();
+                services.AddSingleton<SteamAppListCache>();
+                services.AddSingleton<SteamAppInfoCache>();
+                services.AddSingleton<CoverCache>();
+                services.AddSingleton<ToastService>();
+                services.AddSingleton<SteamDepotInfo>();
+                services.AddSingleton<LuaVault>();
+                services.AddSingleton<Services.AppInfo.LaunchModStore>();
+                services.AddSingleton<Services.AppInfo.LaunchOptionsService>();
+                services.AddSingleton<LuaInstaller>();
+                services.AddSingleton<SteamLibraryService>();
+                services.AddSingleton<AnalyticsService>();
+                services.AddSingleton<GithubProxy>();
+                services.AddSingleton<HardwareAppIdService>();
+                services.AddSingleton<SteamlessService>();
+                services.AddSingleton<SteamAutoCrackService>();
+                services.AddSingleton<DepotDownloaderService>();
+                services.AddSingleton<ManifestDownloadService>();
+                services.AddSingleton<DepotCacheMigrationService>();
+                services.AddSingleton<AppliedFixIndexService>();
+                services.AddSingleton<UnlockerService>();
+                services.AddSingleton<PluginInstallerService>();
+                services.AddTransient<DropInstallViewModel>(); // one per page (Home, Add)
+                services.AddSingleton<ElementApiClient>();
+                services.AddSingleton<HubcapApiClient>();
+                services.AddSingleton<OnlineFixesService>();
+                // Central download queue. Singleton + hosted service (same pattern as HttpServerService
+                // below): the hosted lifetime runs the scheduler pump, and view models resolve the same
+                // instance to enqueue and observe.
+                services.AddSingleton<Services.Downloads.DownloadQueue>();
+                services.AddHostedService(sp => sp.GetRequiredService<Services.Downloads.DownloadQueue>());
+                services.AddSingleton<Services.Downloads.ManifestJobFactory>();
+                // Hook loader infrastructure
+                services.AddSingleton<PluginAddService>();
+                services.AddSingleton<HttpServerService>();
+                services.AddHostedService(sp => sp.GetRequiredService<HttpServerService>());
+                // Also resolvable as a plain singleton (not just IHostedService) so PluginInstallerService
+                // can call ReloadPluginFilesAsync() after install/uninstall. Same pattern as HttpServerService.
+                services.AddSingleton<CefInjectorService>();
+                services.AddHostedService(sp => sp.GetRequiredService<CefInjectorService>());
+                services.AddSingleton<DownloadViewModel>();
+                services.AddSingleton<SettingsViewModel>();
+                services.AddSingleton<ManageViewModel>();
+                services.AddTransient<LaunchOptionsViewModel>(); // one per dialog
+                services.AddSingleton<HomeViewModel>();
+                services.AddSingleton<FixesViewModel>();
+                services.AddSingleton<DownloadsViewModel>();
+                services.AddSingleton<PluginViewModel>();
+                services.AddSingleton<CloudViewModel>();
+                services.AddSingleton<OnboardingViewModel>();
+                services.AddSingleton<MainViewModel>();
+                // Pages resolved by NavigationView via the DI service provider.
+                services.AddSingleton<HomeView>();
+                services.AddSingleton<DownloadView>();
+                services.AddSingleton<DownloadsView>();
+                services.AddSingleton<ManageView>();
+                services.AddSingleton<FixesView>();
+                services.AddSingleton<PluginView>();
+                services.AddSingleton<CloudView>();
+                services.AddSingleton<SettingsView>();
+                services.AddSingleton<MainWindow>();
+            })
+            .Build();
+    }
+
+    // Guards RunUpdateFlowAsync so overlapping triggers (startup + the re-poke a DLL/Steam restart causes)
+    // never run it concurrently. A second caller drops out immediately.
+    private readonly System.Threading.SemaphoreSlim _updateFlowGate = new(1, 1);
+
+    /// <summary>
+    /// Warn when Steam has overwritten launch options we'd applied, and offer to put them back.
+    ///
+    /// <para>
+    /// Steam rebuilds appinfo.vdf from PICS on login, app updates and store browsing. It did so twice
+    /// while this feature was being written, so an applied edit is not permanent. Re-applying is offered
+    /// but never automatic: it closes Steam, which is not something to do behind the user's back at
+    /// startup. Costs nothing when no launch options have been edited (the store short-circuits on empty).
+    /// </para>
+    /// </summary>
+    private async Task CheckLaunchOptionDriftAsync()
+    {
+        try
+        {
+            var launch = _host.Services.GetRequiredService<Services.AppInfo.LaunchOptionsService>();
+            if (launch.Store.IsEmpty) return;
+
+            // Indexing the ~373 MB cache takes a couple of seconds, never on the UI thread.
+            var drifted = await Task.Run(launch.FindDrifted);
+            if (drifted.Count == 0) return;
+
+            var toast = _host.Services.GetRequiredService<ToastService>();
+            Dispatcher.Invoke(() => toast.ShowAction(
+                ElementGui.Resources.Strings.Launch_Drift_Title,
+                string.Format(ElementGui.Resources.Strings.Launch_Drift_Body, drifted.Count),
+                ElementGui.Resources.Strings.Launch_Drift_Action,
+                () => _ = ReapplyDriftedAsync(launch, drifted, toast)));
+        }
+        catch
+        {
+            // Cache locked/unreadable: nothing actionable, and this must never block startup.
+        }
+    }
+
+    /// <summary>
+    /// The drift notice's "Re-apply" button: confirm, then write the staged edits back into appinfo.
+    ///
+    /// <para>
+    /// The write runs OFF the UI thread. Unlike the launch-options dialog (which is modal, so its own
+    /// synchronous apply merely blocks a window that's already blocking), this fires with the main window
+    /// live, and <c>Apply</c> indexes a ~373 MB file, copies a backup and rewrites it. On the UI thread
+    /// that's a multi-second freeze of the whole app.
+    /// </para>
+    /// </summary>
+    private static async Task ReapplyDriftedAsync(
+        Services.AppInfo.LaunchOptionsService launch, IReadOnlyList<int> drifted, ToastService toast)
+    {
+        // Same wording as the dialog's own prompt: closing Steam should never read as a different
+        // decision depending on where it was triggered from.
+        if (MessageBox.Show(
+                ElementGui.Resources.Strings.Launch_ApplyNow_Body,
+                ElementGui.Resources.Strings.Launch_ApplyNow_Title,
+                MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
+            return;
+
+        var result = await Task.Run(() => launch.Reapply(drifted));
+
+        if (result.Ok)
+            toast.Show(ElementGui.Resources.Strings.Launch_Title,
+                result.SteamWasRunning
+                    ? ElementGui.Resources.Strings.Launch_Applied_Restarted
+                    : ElementGui.Resources.Strings.Launch_Applied);
+        else
+            toast.Show(ElementGui.Resources.Strings.Launch_Title,
+                string.Format(ElementGui.Resources.Strings.Launch_ApplyFailed, result.Error), error: true);
+    }
+
+    /// <summary>Set by OnStartup to <see cref="RunUpdateFlowAsync"/> so non-UI callers (e.g. the
+    /// /check-updates HTTP handler) can run the exact same update flow instead of a divergent one.</summary>
+    internal static Func<Task>? RunUpdateFlow;
+
+    /// <summary>The Steam-open update flow: check/apply a plugin update. Called on
+    /// a loader (--tray-locked) launch and on the Steam-open re-check poke; safe to
+    /// call repeatedly. The app itself never self-updates (no Velopack update flow).</summary>
+    private async Task RunUpdateFlowAsync()
+    {
+        if (!_updateFlowGate.Wait(0)) return; // another run already in progress
+        try
+        {
+            // No app update pending, ever: check/apply a plugin update against this app.
+            try
+            {
+                var installer = _host.Services.GetRequiredService<PluginInstallerService>();
+                var st = await installer.GetStatusAsync(force: true);
+                if (st.UpdateAvailable)
+                {
+                    // An update means an older Element-made install (manifest tag) vs. the
+                    // release: files will change, so say so before the Steam restart.
+                    var t = _host.Services.GetRequiredService<ToastService>();
+                    Dispatcher.Invoke(() => t.Show("Element", "Updating plugin. Steam will restart."));
+                    await installer.InstallAsync(progress: null);
+                }
+            }
+            catch { /* offline / install error. Retry next Steam-open */ }
+        }
+        finally { _updateFlowGate.Release(); }
+    }
+
+    protected override async void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+
+        // Legacy cleanup: older builds staged downloads in ~/Downloads/Element (they now stage in
+        // %TEMP% and self-delete). Remove any leftovers from that user-visible folder, best-effort.
+        // Also sweep the current %TEMP% staging folder: a crash mid-download, or an overwrite confirm
+        // the user never answered, leaves a staged zip nobody will ever delete.
+        _ = System.Threading.Tasks.Task.Run(() =>
+        {
+            try
+            {
+                string legacy = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads", "Element");
+                if (System.IO.Directory.Exists(legacy)) System.IO.Directory.Delete(legacy, recursive: true);
+            }
+            catch { /* best effort, never block startup on cleanup */ }
+
+            Services.Downloads.HttpFileDownloader.SweepStale();
+        });
+
+        await _host.StartAsync();
+
+        // Rewrite any pre-3-mode SelectedMode BEFORE anything reads it. UnlockerService.SelectedMode
+        // would otherwise parse a legacy value to null and quietly present an unconfigured app. Users
+        // whose mode was retired outright (SteamTools, the CloudRedirect fix) have no mode now, so
+        // onboarding is forced back open: OnboardingComplete is a permanent flag that every existing
+        // user already has set, and clearing SelectedMode alone would leave them with no mode AND no
+        // overlay explaining why.
+        if (ModeMigration.Apply(_host.Services.GetRequiredService<SettingsService>()))
+            _host.Services.GetRequiredService<CacheService>().OnboardingComplete = false;
+
+        // Point OST/BST at config/stplug-in so lua writes hot-reload. Must run AFTER the migration
+        // above, which is what makes SelectedMode parse. The app no longer tells anyone to restart
+        // Steam for a lua change, so this registration is what makes that promise true � and it
+        // previously only ever ran during a mode install through this app.
+        _host.Services.GetRequiredService<UnlockerService>().EnsureLuaPathRegistered();
+
+        var main = _host.Services.GetRequiredService<MainViewModel>();
+        var settingsVm = _host.Services.GetRequiredService<SettingsViewModel>();
+
+        // Changing the language needs a relaunch (x:Static resources resolve at parse time).
+        settingsVm.RequestRestart = RelaunchApp;
+
+        var window = _host.Services.GetRequiredService<MainWindow>();
+
+        // Turning off "Minimize to tray" while hidden in the tray ? bring the window back.
+        settingsVm.RequestShowWindow = () => Dispatcher.Invoke(window.RestoreFromTray);
+
+        // Relaunching the app (single-instance) signals this event ? surface the existing window and
+        // check for any protocol URL a second instance wrote. AutoReset + executeOnlyOnce:false so it
+        // keeps firing for every relaunch.
+        if (Program.ShowWindowSignal is not null)
+            System.Threading.ThreadPool.RegisterWaitForSingleObject(
+                Program.ShowWindowSignal,
+                (_, _) => Dispatcher.Invoke(() =>
+                {
+                    // A silent install relaunch stays headless: don't surface the window for it.
+                    string? pending = ProtocolService.TryReadPending();
+                    bool silent = pending is not null && ProtocolService.Parse(pending).Silent;
+                    if (!silent)
+                        window.RestoreFromTray();
+                    if (pending is not null)
+                        HandleProtocolUrl(pending);
+                }),
+                null, System.Threading.Timeout.Infinite, executeOnlyOnce: false);
+
+        // A --tray-locked relaunch (the loader) signals this ? enable close-to-tray for the session even if
+        // this instance was started without the flag. Idempotent; keeps firing for every relaunch.
+        if (Program.EnableTrayLockSignal is not null)
+            System.Threading.ThreadPool.RegisterWaitForSingleObject(
+                Program.EnableTrayLockSignal,
+                (_, _) => Program.SessionTrayLock = true,
+                null, System.Threading.Timeout.Infinite, executeOnlyOnce: false);
+
+        // A --tray-locked relaunch (the loader on Steam-open) signals this ? re-run the update flow so an
+        // already-running app still updates when the user opens Steam. Guarded internally against overlap.
+        if (Program.RecheckUpdatesSignal is not null)
+            System.Threading.ThreadPool.RegisterWaitForSingleObject(
+                Program.RecheckUpdatesSignal,
+                (_, _) => _ = RunUpdateFlowAsync(),
+                null, System.Threading.Timeout.Infinite, executeOnlyOnce: false);
+
+        // Expose the same flow to non-UI callers (the /check-updates HTTP handler).
+        RunUpdateFlow = RunUpdateFlowAsync;
+
+        var toast = _host.Services.GetRequiredService<ToastService>();
+        toast.Attach(window.RootSnackbar); // wire the presenter before anything can raise a toast
+
+        // Language changed ? persistent toast offering an immediate relaunch.
+        settingsVm.RequestRestartPrompt = () => Dispatcher.Invoke(() =>
+            toast.ShowAction(
+                ElementGui.Resources.Strings.Lang_Changed_Title,
+                ElementGui.Resources.Strings.Lang_Changed_Body,
+                ElementGui.Resources.Strings.Lang_Changed_Restart,
+                () => settingsVm.RequestRestart?.Invoke()));
+
+        // Built-In Button Mode changed ? restart Steam (not the app): the mode
+        // takes effect on the Steam/module side.
+        settingsVm.RequestButtonModeRestartPrompt = () => Dispatcher.Invoke(() =>
+            toast.ShowAction(
+                ElementGui.Resources.Strings.ButtonMode_Changed_Title,
+                ElementGui.Resources.Strings.ButtonMode_Changed_Body,
+                ElementGui.Resources.Strings.Lang_Changed_Restart,
+                () => _ = settingsVm.RestartSteamForButtonModeCommand.ExecuteAsync(null)));
+
+        // Block Steam updates (steam.cfg) changed ? restart Steam so the cfg is re-read.
+        settingsVm.RequestSteamCfgRestartPrompt = blocked => Dispatcher.Invoke(() =>
+            toast.ShowAction(
+                blocked
+                    ? ElementGui.Resources.Strings.SteamCfg_Changed_Title
+                    : ElementGui.Resources.Strings.SteamCfg_Removed_Title,
+                blocked
+                    ? ElementGui.Resources.Strings.SteamCfg_Changed_Body
+                    : ElementGui.Resources.Strings.SteamCfg_Removed_Body,
+                ElementGui.Resources.Strings.Lang_Changed_Restart,
+                () => _ = settingsVm.RestartSteamForButtonModeCommand.ExecuteAsync(null)));
+
+        // App updates now apply silently via RunUpdateFlowAsync (restart-on-Steam-open, unconditionally
+        // and before any plugin update), so no "Restart" prompt toast.
+        var download = _host.Services.GetRequiredService<DownloadViewModel>();
+
+        var manage = _host.Services.GetRequiredService<ManageViewModel>();
+
+        // Manage page "Update" ? go to the Add page pre-seeded with that appid.
+        manage.NavigateToAdd = appId =>
+            Dispatcher.Invoke(() => { window.NavigateToAdd(); download.SeedSearch(appId); });
+
+        // Manage flyout "Launch options�" ? modal editor over Steam's appinfo cache.
+        manage.OpenLaunchOptions = (appId, name) => Dispatcher.Invoke(() =>
+        {
+            var dialog = new LaunchOptionsDialog(
+                _host.Services.GetRequiredService<LaunchOptionsViewModel>(), appId, name)
+            { Owner = window };
+            dialog.ShowDialog();
+        });
+
+        // Steam regenerates appinfo.vdf from PICS, wiping launch edits. Check once at startup and
+        // OFFER to re-apply, never silently, since applying closes Steam.
+        _ = CheckLaunchOptionDriftAsync();
+
+        // Home "recently added" + Add install banner "Reveal" ? go to Manage and open that game's detail.
+        Action<long> openInManage = appId =>
+            Dispatcher.Invoke(() => { window.NavigateToManage(); _ = manage.OpenDetailForAppIdAsync(appId); });
+        var home = _host.Services.GetRequiredService<HomeViewModel>();
+        home.NavigateToGame = openInManage;
+
+        // Deliberately NO queue-wide completion toast here. Every entry point already reports its own
+        // outcome: Fixes toasts from ManifestJobFactory, the Add page shows its InstallStatus banner, the
+        // store plugin has its popup, and a silent install pops a tray balloon. A global toast on top of
+        // those double-notified every one of them.
+
+        // The Downloads tab's "Review" button on an item waiting for an overwrite confirmation: the
+        // overlay lives on the Add page, so send the user there.
+        _host.Services.GetRequiredService<DownloadsViewModel>().RevealItem = _ => window.NavigateToAdd();
+
+        download.NavigateToGame = openInManage;
+
+        // Add tab "Online fix" row with several fixes ? open that game on the Fixes page.
+        var fixesVm = _host.Services.GetRequiredService<FixesViewModel>();
+        download.NavigateToFixes = appId =>
+            Dispatcher.Invoke(() => { window.NavigateToFixes(); _ = fixesVm.OpenForAppIdAsync(appId); });
+
+        // Fixes flyout "Add game" ? go to the Add page pre-seeded with that appid.
+        fixesVm.NavigateToAdd = appId =>
+            Dispatcher.Invoke(() => { window.NavigateToAdd(); download.SeedSearch(appId); });
+
+        // Dragging a SteamDB / Steam store link onto either drop box installs that appid. Routed through
+        // HandleProtocolUrl rather than calling ProtocolInstall directly, so a dropped link and
+        // element://install/<id> are literally the same path and can't drift apart later.
+        // DropInstallViewModel is transient, so Home and Add each hold their own instance.
+        Func<long, Task> installByAppId = appId =>
+        {
+            Dispatcher.Invoke(() => HandleProtocolUrl($"element://install/{appId}"));
+            return Task.CompletedTask;
+        };
+        home.Drop.InstallByAppId = installByAppId;
+        download.Drop.InstallByAppId = installByAppId;
+
+        // Home dashboard cells ? section navigation.
+        home.NavigateToPlugin = () => Dispatcher.Invoke(window.NavigateToPlugin);
+        home.NavigateToManage = () => Dispatcher.Invoke(window.NavigateToManage);
+        home.NavigateToSettings = () => Dispatcher.Invoke(window.NavigateToSettings);
+
+        // Onboarding finished applying its actions ? refresh the Home dashboard tiles (mode + plugin status).
+        main.Onboarding.RefreshHome = () => Dispatcher.Invoke(() => home.LoadAsync());
+
+        // Any game added (plugin store-page button, drag-drop, Add page, Fixes) ? refresh the library views
+        // live. LuaInstaller.Installed can fire on a background thread (plugin install), so marshal to UI.
+        var luaInstaller = _host.Services.GetRequiredService<LuaInstaller>();
+        var appInfo = _host.Services.GetRequiredService<SteamAppInfoCache>();
+        luaInstaller.Installed += appId => Dispatcher.InvokeAsync(async () =>
+        {
+            _ = manage.LoadAsync();            // re-scan so Manage updates too if it's the visible page
+            await home.RefreshLibraryAsync();  // game appears (its cover may lag for newer titles)
+
+            // Newer titles have no guessable header URL: the classic CDN path 404s and the real header is
+            // a content-hashed store_item_assets URL that only comes from appdetails. Warm that game's
+            // details at interactive priority (retries past throttling), then refresh again so its cover
+            // fills in instead of staying blank until an app restart.
+            if (await appInfo.EnsureFullDetailsAsync(appId))
+                await home.RefreshLibraryAsync();
+        });
+
+        // Handle a protocol URL from the command line (first launch) or from a temp file left by a
+        // second instance that exited before the signal listener was wired up.
+        string? url = Program.StartupUrl ?? ProtocolService.TryReadPending();
+
+        // A silent install launch (element://install/silent/<id>) runs headless: stay in the tray and
+        // never surface the window. The window's Loaded handler (which restores auth) won't fire when we
+        // skip Show(), so restore the session explicitly before the install runs.
+        bool silentStartup = (url is not null && ProtocolService.Parse(url).Silent) || Program.StartMinimized;
+
+        // Auto-exit after a silent install only when this was a COLD launch for it (StartupUrl came on the
+        // command line, not from an already-running second instance) AND the user doesn't keep a tray app
+        // around. Otherwise the app was already living somewhere and must stay.
+        _exitAfterSilentInstall = silentStartup
+            && Program.StartupUrl is not null
+            && !settingsVm.MinimizeToTray;
+
+        if (silentStartup)
+        {
+            window.StartSilent();
+        }
+        else
+        {
+            window.Show();
+
+            // First-run onboarding: show the welcome overlay on a fresh install. Skip it (and mark done)
+            // when the user is already set up (a managed mode selected AND the plugin installed), so
+            // existing users / dev machines aren't nagged. Marking done here is permanent, so switching
+            // mode later never re-triggers onboarding (only ModeMigration ever clears it again).
+            var cache = _host.Services.GetRequiredService<CacheService>();
+            if (!cache.OnboardingComplete)
+            {
+                var unlocker = _host.Services.GetRequiredService<UnlockerService>();
+                var installer = _host.Services.GetRequiredService<PluginInstallerService>();
+                // Custom deliberately doesn't count: a first-run user can't meaningfully choose "I'll
+                // manage it myself" before they've been shown what the options are.
+                bool configured =
+                    unlocker.SelectedMode is UnlockerMode.Element
+                    && installer.IsInstalledLocally();
+                if (configured) cache.OnboardingComplete = true;
+                else main.Onboarding.IsOpen = true;
+            }
+        }
+
+        if (url is not null)
+            HandleProtocolUrl(url);
+
+        // Background Steam-open plugin update flow, but ONLY in the loader context
+        // (--tray-locked). A manual / protocol / silent-install launch skips it, so the app never
+        // restarts mid-manual-use. It only happens when Steam launches us.
+        if (Program.SessionTrayLock)
+            _ = RunUpdateFlowAsync();
+
+        // Anonymous app-launch ping (Umami). Fire-and-forget; never blocks.
+        _ = _host.Services.GetRequiredService<AnalyticsService>().TrackAppLaunchAsync();
+
+        // Warm the hardware-appid blacklist (refreshes from GitHub if the cache is stale). Fire-and-forget.
+        _ = _host.Services.GetRequiredService<HardwareAppIdService>().EnsureFreshAsync();
+
+        // Rescue manifests this app used to write into config\depotcache, which Steam never reads. Silent,
+        // idempotent, and costs nothing once the folder is gone. See DepotCacheMigrationService.
+        _ = _host.Services.GetRequiredService<DepotCacheMigrationService>().RunAsync();
+    }
+
+    protected override async void OnExit(ExitEventArgs e)
+    {
+        await _host.StopAsync();
+        _host.Dispose();
+        base.OnExit(e);
+    }
+
+    /// <summary>Relaunch the app (used after a language change). The single-instance mutex is released
+    /// only when THIS process exits, so we start the new instance via a short delayed shell command. By
+    /// the time it launches the exe, our mutex is free and the new instance won't bow out.</summary>
+    private void RelaunchApp()
+    {
+        try
+        {
+            string? exe = Environment.ProcessPath;
+            if (exe is not null)
+            {
+                // cmd: wait ~1.2s for this process's mutex to release, then start the exe detached.
+                var psi = new System.Diagnostics.ProcessStartInfo("cmd.exe",
+                    $"/c timeout /t 2 /nobreak >nul & start \"\" \"{exe}\"")
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                };
+                System.Diagnostics.Process.Start(psi);
+            }
+        }
+        catch { /* if relaunch fails, the user can reopen manually */ }
+        finally
+        {
+            Shutdown();
+        }
+    }
+
+    /// <summary>Route a element:// protocol URL to the appropriate page and action.</summary>
+    private void HandleProtocolUrl(string url)
+    {
+        var (action, appId, silent) = ProtocolService.Parse(url);
+        if (action is null || appId is null) return;
+
+        var window = _host.Services.GetRequiredService<MainWindow>();
+        var download = _host.Services.GetRequiredService<DownloadViewModel>();
+        var manage = _host.Services.GetRequiredService<ManageViewModel>();
+        var fixes = _host.Services.GetRequiredService<FixesViewModel>();
+
+        switch (action)
+        {
+            case "game":
+                window.NavigateToAdd();
+                download.SeedSearch(appId.Value);
+                break;
+            case "install":
+                if (silent)
+                {
+                    // Headless: don't navigate or surface; install in the background, then a tray balloon.
+                    _ = download.ProtocolInstall(appId.Value,
+                        (msg, error) => Dispatcher.Invoke(() =>
+                        {
+                            window.ShowInstallNotification(msg, error);
+                            // Cold launch + no tray app wanted ? exit once the balloon has had time to show.
+                            // ProtocolInstall already awaited this item's completion, but the user (or the
+                            // store plugin) may have queued more; exiting now would cancel them mid-flight.
+                            var queue = _host.Services.GetRequiredService<Services.Downloads.DownloadQueue>();
+                            if (_exitAfterSilentInstall && queue.ActiveCount == 0)
+                                _ = Task.Delay(6000).ContinueWith(_ => Dispatcher.Invoke(Shutdown));
+                        }));
+                }
+                else
+                {
+                    window.NavigateToAdd();
+                    _ = download.ProtocolInstall(appId.Value);
+                }
+                break;
+            case "manage":
+                window.NavigateToManage();
+                _ = manage.OpenDetailForAppIdAsync(appId.Value);
+                break;
+            case "fix":
+                window.NavigateToFixes();
+                _ = fixes.OpenForAppIdAsync(appId.Value);
+                break;
+        }
+    }
+}
