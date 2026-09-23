@@ -34,6 +34,12 @@ public partial class SettingsViewModel : ObservableObject
 
     partial void OnAutoUpdateAppsChanged(bool value) => _settings.AutoUpdateApps = value;
 
+    /// <summary>Auto Download Manifest Files. Missing depot manifests are fetched
+    /// via ManifestDeX codes + Steam CDN instead of aborting the job.</summary>
+    [ObservableProperty] private bool _autoDownloadManifests;
+
+    partial void OnAutoDownloadManifestsChanged(bool value) => _settings.AutoDownloadManifests = value;
+
     // ── Built-in button mode ────────────────────────────────────────
     /// <summary>Which API the "Add with Element" store button uses. Hubcap first (default).</summary>
     public ObservableCollection<ButtonModeOption> ButtonModeOptions { get; } =
@@ -215,7 +221,7 @@ public partial class SettingsViewModel : ObservableObject
         _toast = toast;
         RefreshSteam();
         _autoUpdateApps = settings.AutoUpdateApps; // init from saved value (default ON) without triggering Save
-        _startWithWindows = settings.StartWithWindows; // default OFF. Init without triggering the registry write
+        _autoDownloadManifests = settings.AutoDownloadManifests; // default ON. Init without triggering Save        _startWithWindows = settings.StartWithWindows; // default OFF. Init without triggering the registry write
         _minimizeToTray = settings.MinimizeToTray;
         _blockSteamUpdates = settings.BlockSteamUpdates; // default OFF. Init without triggering the cfg write
 

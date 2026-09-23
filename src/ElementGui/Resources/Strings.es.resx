@@ -608,4 +608,44 @@ Cancelar: seguir descargando</value></data>
   <data name="Depot_Err_NoKeyFor" xml:space="preserve"><value>No hay clave de descifrado en el Lua para el depot {0}.</value></data>
   <data name="Builds_Select_SharedHint" xml:space="preserve"><value>Runtime compartido: normalmente ya está instalado. Marca para descargarlo igualmente.</value></data>
   <data name="Downloads_ClearHistory_Confirm" xml:space="preserve"><value>¿Quitar las {0} entradas del historial de descargas? Los archivos descargados no se ven afectados.</value></data>
+  <data name="Settings_AutoDownloadManifests" xml:space="preserve"><value>Descargar archivos de manifiesto automáticamente</value></data>
+  <data name="Settings_AutoDownloadManifests_Hint" xml:space="preserve"><value>Obtiene automáticamente los manifiestos de depósito faltantes mediante códigos ManifestDeX + CDN de Steam. Desactívalo para cancelar el trabajo cuando un manifiesto no esté en el disco.</value></data>
+  <data name="Cloud_Section_MetadataSync" xml:space="preserve"><value>Sincronización de metadatos y estadísticas de Steam</value></data>
+  <data name="Cloud_MetadataSync_Hint" xml:space="preserve"><value>Configura el desbloqueo de logros, el seguimiento del tiempo de juego y la obtención del esquema entre dispositivos.</value></data>
+  <data name="Cloud_AchievementsSync" xml:space="preserve"><value>Sincronización de logros</value></data>
+  <data name="Cloud_AchievementsSync_Hint" xml:space="preserve"><value>Sincroniza los logros entre dispositivos mediante el proveedor</value></data>
+  <data name="Cloud_PlaytimeSync" xml:space="preserve"><value>Sincronización del tiempo de juego</value></data>
+  <data name="Cloud_PlaytimeSync_Hint" xml:space="preserve"><value>Sincroniza el tiempo de juego entre dispositivos mediante el proveedor</value></data>
+  <data name="Cloud_LuaSync" xml:space="preserve"><value>Sincronización de Lua</value></data>
+  <data name="Cloud_LuaSync_Hint" xml:space="preserve"><value>Sincroniza los metadatos de manifiestos Lua entre dispositivos</value></data>
+  <data name="Cloud_SchemaFetch" xml:space="preserve"><value>Obtención del esquema</value></data>
+  <data name="Cloud_SchemaFetch_Hint" xml:space="preserve"><value>Obtiene el esquema UserGameStats de Steam cuando no está disponible</value></data>
+  <data name="Cloud_EnableRedirection" xml:space="preserve"><value>Activar la redirección de guardados en la nube</value></data>
+  <data name="Cloud_EnableRedirection_Hint" xml:space="preserve"><value>Activa la redirección automática de archivos de guardado y la sincronización en segundo plano</value></data>
+  <data name="Cloud_SyncEngine" xml:space="preserve"><value>Motor de sincronización:</value></data>
+  <data name="Cloud_SyncActive" xml:space="preserve"><value>Activo y listo</value></data>
+  <data name="Cloud_SyncPaused" xml:space="preserve"><value>Instalado · En pausa</value></data>
+  <data name="Cloud_InstalledLabel" xml:space="preserve"><value>Instalado:</value></data>
+  <data name="Cloud_LatestLabel" xml:space="preserve"><value>Versión de GitHub:</value></data>
+  <data name="Cloud_ReinstallEngine" xml:space="preserve"><value>Reinstalar el motor de sincronización</value></data>
+  <data name="Cloud_UninstallEngine" xml:space="preserve"><value>Desinstalar el motor de sincronización</value></data>
+  <data name="Cloud_OpenSteamFolder" xml:space="preserve"><value>Abrir la carpeta de Steam</value></data>
+  <data name="Manage_DownloadManifests" xml:space="preserve"><value>Descargar manifiestos</value></data>
+  <data name="Manage_Toast_Manifests_Title" xml:space="preserve"><value>Manifiestos</value></data>
+  <data name="Manage_Toast_Manifests_None" xml:space="preserve"><value>No se encontraron manifiestos fijados en ningún archivo lua.</value></data>
+  <data name="Manage_Toast_Manifests_Done" xml:space="preserve"><value>{0} descargados, {1} ya presentes, {2} con errores.</value></data>
+  <data name="Add_FixAvailable" xml:space="preserve"><value>Arreglo en línea disponible</value></data>
+  <data name="Add_CheckingFix" xml:space="preserve"><value>Buscando arreglos…</value></data>
+  <data name="Fixes_Select_Game_Folder_Title" xml:space="preserve"><value>Selecciona la carpeta de instalación de {0}</value></data>
+  <data name="Fixes_Select_Game_Folder_WarnTitle" xml:space="preserve"><value>No se encontraron archivos del juego</value></data>
+  <data name="Fixes_Select_Game_Folder_WarnBody" xml:space="preserve"><value>No hay archivos .exe en {0}. Elige la carpeta que contiene el .exe del juego. ¿Usar esta carpeta de todos modos?</value></data>
+  <data name="Fixes_Toast_FolderCancelled" xml:space="preserve"><value>Ninguna carpeta seleccionada</value></data>
+  <data name="Fixes_Toast_FolderCancelled_Body" xml:space="preserve"><value>Elige la carpeta del juego para aplicar el arreglo.</value></data>
+  <data name="Fixes_Applied" xml:space="preserve"><value>Aplicados</value></data>
+  <data name="Fixes_Applied_Count" xml:space="preserve"><value>{0} juegos arreglados. Abre uno para revertirlo.</value></data>
+  <data name="Fixes_Applied_Empty" xml:space="preserve"><value>Aún no hay arreglos aplicados — aplica un arreglo para verlo aquí.</value></data>
+  <data name="Fixes_Applied_Badge" xml:space="preserve"><value>ARREGLADO</value></data>
+  <data name="Fixes_AddGame" xml:space="preserve"><value>Añadir juego</value></data>
+  <data name="Fixes_Revert_CleanupFailed" xml:space="preserve"><value>No se pudo completar la reversión</value></data>
+  <data name="Fixes_Revert_CleanupFailed_Body" xml:space="preserve"><value>Los archivos se restauraron, pero no se pudo eliminar el registro de reversión. Cierra el juego Y Steam (o ejecuta Element como administrador) e inténtalo de nuevo.</value></data>
 </root>

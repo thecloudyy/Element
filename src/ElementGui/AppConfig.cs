@@ -7,9 +7,11 @@ public static class AppConfig
 {
     public const string HubcapApiBaseUrl = "https://hubcapmanifest.com";
     public const string ApiBaseUrl = "https://generator.ryuu.lol";
-    public const string LuaToolsApiBaseUrl = "https://lua.tools";
-    public const string AuthKey = "hqGqlo1bw6aWFl08";
-    public const string HubcapKey = "smm_da41ecae4378061052ce32dc357c9ae118c5f64cf6aab072c08c606c57d7558afe894d27e1eb14f90c521752894eebed";
+
+    // Online fixes (GitHub). Fixes page uses ONLY this source — no lua.tools APIs for fixes.
+    public const string OnlineFixesOwner = "thecloudyy";
+    public const string OnlineFixesRepo = "OnlineFixes";
+    public const string OnlineFixesBranch = "main";
 
     // Public upstream APIs the app calls directly (no proxy needed for guest browsing).
     public const string SteamStoreSearchUrl = "https://store.steampowered.com/api/storesearch/";
@@ -32,17 +34,6 @@ public static class AppConfig
     public const string UmamiHost = "https://analytics.lua.tools";
     public const string UmamiWebsiteId = "820d782c-a434-424f-9f90-dee83dc6032e";
     public const string UmamiHostname = "desktop.lua.tools";
-
-    /// <summary>
-    /// Public GitHub repos hosting Velopack release assets, in priority order.
-    /// </summary>
-    public static readonly string[] GithubReleasesRepos =
-    [
-        "https://github.com/thecloudyy/OpenSteamTool",
-        "https://github.com/thecloudyy/ManifestDeXCore",
-    ];
-
-    public static string GithubReleasesRepo => GithubReleasesRepos[0];
 
     // Plugin releases
     public const string PluginReleasesOwner = "thecloudyy";

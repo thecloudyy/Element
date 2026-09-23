@@ -96,14 +96,20 @@ public partial class DownloadViewModel : ObservableObject
     private readonly HardwareAppIdService _hardware;
     private readonly DownloadQueue _queue;
     private readonly ManifestJobFactory _jobs;
+    private readonly OnlineFixesService _online;
+    private readonly SteamLibraryService _library;
     private CancellationTokenSource? _searchCts;
     private CancellationTokenSource? _detailsCts;
+    private CancellationTokenSource? _fixCts;
 
     // Per-confirm steamcmd lookup: depot/DLC id ? its real depot info (name/size/os/lang).
     private IReadOnlyDictionary<long, ContentDepot> _depotsById = new Dictionary<long, ContentDepot>();
 
     /// <summary>Set by App: navigate to Manage and open this appid's detail (the install banner's "Reveal").</summary>
     public Action<long>? NavigateToGame { get; set; }
+
+    /// <summary>Set by App: navigate to Fixes and open this appid's fix detail.</summary>
+    public Action<long>? NavigateToFixes { get; set; }
 
     public ObservableCollection<SteamSearchResult> SearchResults { get; } = [];
     public ObservableCollection<SourceRowViewModel> Sources { get; } = [];
@@ -145,6 +151,7 @@ public partial class DownloadViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSources))]
+    [NotifyPropertyChangedFor(nameof(ShowFixRow))]
     [NotifyPropertyChangedFor(nameof(ShowFeatured))]
     private bool _sourcesLoaded;
 
@@ -313,11 +320,159 @@ public partial class DownloadViewModel : ObservableObject
 
     private bool _suppressSearch;
 
+    // -- Online fix (same download as the Fixes page) ------------------
+    private IReadOnlyList<OnlineFixEntry> _onlineFixEntries = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOnlineFix))]
+    [NotifyPropertyChangedFor(nameof(ShowFixRow))]
+    [NotifyPropertyChangedFor(nameof(ShowFixDownload))]
+    [NotifyPropertyChangedFor(nameof(IsMultiFix))]
+    [NotifyPropertyChangedFor(nameof(FixButtonLabel))]
+    [NotifyPropertyChangedFor(nameof(CanDownloadFix))]
+    private int _onlineFixCount;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowFixRow))]
+    [NotifyPropertyChangedFor(nameof(ShowFixDownload))]
+    [NotifyPropertyChangedFor(nameof(CanDownloadFix))]
+    private bool _fixApplied;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanDownloadFix))]
+    private DownloadItem? _fixQueueItem;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowFixRow))]
+    private bool _isCheckingFix;
+
+    /// <summary>An OnlineFix exists for the loaded game.</summary>
+    public bool HasOnlineFix => OnlineFixCount > 0;
+
+    /// <summary>
+    /// Row shell: only after Fetch (like the source rows), while checking or when a
+    /// downloadable fix exists.
+    /// </summary>
+    public bool ShowFixRow => HasSources && (IsCheckingFix || ShowFixDownload);
+
+    /// <summary>Show the fix row: fix exists and isn't already applied.</summary>
+    public bool ShowFixDownload => HasOnlineFix && !FixApplied;
+
+    public bool IsMultiFix => OnlineFixCount > 1;
+
+    public string FixButtonLabel => IsMultiFix
+        ? string.Format(Resources.Strings.Fixes_Count, OnlineFixCount)
+        : Resources.Strings.Fixes_Fix;
+
+    public bool CanDownloadFix => ShowFixDownload && FixQueueItem?.IsActive != true;
+
+    partial void OnDetailsChanged(GameDetails? value)
+    {
+        _fixCts?.Cancel();
+        if (value is null) { ClearFixState(); return; }
+        _ = RefreshFixStateAsync(value.AppId);
+    }
+
+    private void ClearFixState()
+    {
+        _onlineFixEntries = [];
+        OnlineFixCount = 0;
+        FixApplied = false;
+        FixQueueItem = null;
+    }
+
+    /// <summary>Look up OnlineFixes for the loaded game and whether they're already applied.</summary>
+    private async Task RefreshFixStateAsync(long appId)
+    {
+        var cts = _fixCts = new CancellationTokenSource();
+        IsCheckingFix = true;
+        try
+        {
+            var entries = await _online.GetFixesAsync(appId, cts.Token);
+            if (cts.Token.IsCancellationRequested || Details?.AppId != appId) return;
+            _onlineFixEntries = entries;
+            OnlineFixCount = entries.Count;
+            FixApplied = entries.Count > 0 && entries.All(e =>
+            {
+                try { return _jobs.IsFixApplied(appId, e.FileName); }
+                catch { return false; }
+            });
+            // Never detach an in-flight download's progress bar.
+            if (FixQueueItem?.IsActive != true) FixQueueItem = null;
+        }
+        catch (OperationCanceledException) { /* superseded by newer input */ }
+        catch { if (Details?.AppId == appId) ClearFixState(); }
+        finally { if (_fixCts == cts) IsCheckingFix = false; }
+    }
+
+    /// <summary>
+    /// Download the OnlineFix for the loaded game (same job as the Fixes page Fix button).
+    /// Standalone, like the Hubcap Download button: fix zip only, no lua/manifest chaining.
+    /// Shown after Fetch, hidden once applied. Multiple fixes go to the Fixes page instead.
+    /// </summary>
+    [RelayCommand]
+    private void DownloadFix()
+    {
+        if (Details is null || _onlineFixEntries.Count == 0) return;
+        long appId = Details.AppId;
+        string gameName = Details.Name;
+
+        if (_onlineFixEntries.Count > 1)
+        {
+            NavigateToFixes?.Invoke(appId);
+            return;
+        }
+
+        var entry = _onlineFixEntries[0];
+        // Guard against a stale lookup (previous game's entries surviving a cancelled refresh):
+        // the entry knows its own appid, so a mismatch is caught before anything downloads.
+        if (entry.AppId != appId || Details?.AppId != appId)
+        {
+            _ = RefreshFixStateAsync(appId);
+            return;
+        }
+
+        EnqueueFixJob(entry, appId, gameName);
+    }
+
+    /// <summary>Queue the fix zip download + extract into the game's install folder.</summary>
+    private void EnqueueFixJob(OnlineFixEntry entry, long appId, string gameName)
+    {
+        // Auto-find first; popup only when missing. Persisted for next time.
+        string? dir = _library.GetInstallDir(appId)
+            ?? _library.ResolveInstallDirWithPrompt(appId, gameName);
+        if (dir is null || !Directory.Exists(dir))
+        {
+            _toast.Show(Resources.Strings.Fixes_Toast_FolderCancelled,
+                Resources.Strings.Fixes_Toast_FolderCancelled_Body, error: true);
+            return;
+        }
+
+        var job = _jobs.CreateOnlineFixJob(entry, appId, gameName,
+            onFinished: (item, result) =>
+            {
+                if (result is null && item.Status == DownloadStatus.Failed)
+                {
+                    _toast.Show(Resources.Strings.Fixes_Toast_DownloadFailed,
+                        item.Message ?? Resources.Strings.Fixes_Toast_DownloadFailed_Body, error: true);
+                    return;
+                }
+                if (result?.Ok == true)
+                {
+                    FixApplied = true; // hides the row — they have it now
+                    FixQueueItem = null;
+                }
+            });
+
+        FixQueueItem = _queue.Enqueue(job);
+    }
+
     public DownloadViewModel(ElementApiClient api, HubcapApiClient hubcap, SettingsService settings,
         ToastService toast, LuaInstaller installer,
         SteamAppListCache appList, SteamAppInfoCache appInfo, SteamDepotInfo depotInfo,
         HardwareAppIdService hardware, DropInstallViewModel drop,
-        DownloadQueue queue, ManifestJobFactory jobs)
+        DownloadQueue queue, ManifestJobFactory jobs,
+        OnlineFixesService online, SteamLibraryService library)
     {
         _api = api;
         _hubcap = hubcap;
@@ -330,6 +485,8 @@ public partial class DownloadViewModel : ObservableObject
         _hardware = hardware;
         _queue = queue;
         _jobs = jobs;
+        _online = online;
+        _library = library;
         Drop = drop;
     }
 
@@ -357,6 +514,7 @@ public partial class DownloadViewModel : ObservableObject
         if (_suppressSearch) return;
 
         ResetResults();
+        ClearFixState(); // new input invalidates the previous game's fix row immediately
         Details = null;
 
         // Cleared the box ? back to the idle/featured state: dismiss the leftover install banner
@@ -610,6 +768,9 @@ public partial class DownloadViewModel : ObservableObject
         finally
         {
             IsChecking = false;
+            // ResetResults (above) cancelled the Details-driven fix lookup; restart it so the
+            // fix row still populates after Fetch.
+            if (Details is not null) _ = RefreshFixStateAsync(Details.AppId);
         }
     }
 
@@ -637,10 +798,9 @@ public partial class DownloadViewModel : ObservableObject
         // a different game before the confirmation appears, and the dialog must still name THIS one.
         long appId = Details.AppId;
         string gameName = Details.Name;
-        bool needsKey = source.NeedsKey;
 
         var job = _jobs.CreateManifestJob(
-            appId, gameName, source.Name, needsKey,
+            appId, gameName, source.Name,
             // Silent/headless installs have no surfaced window to confirm on, so they skip the gate.
             confirm: _silentInstall ? null : (file, _, ct) => ConfirmOverwriteAsync(file, appId, gameName, ct),
             onFinished: (item, result) => OnManifestFinished(item, result),
@@ -898,6 +1058,9 @@ public partial class DownloadViewModel : ObservableObject
         DlcDepots.Clear();
         Error = null;
         LastDownload = null;
+        _fixCts?.Cancel();
+        // NOTE: fix state is NOT cleared here — FetchAsync calls this with the same game loaded,
+        // and the fix chain relies on it surviving. It clears on Details change (OnDetailsChanged).
     }
 
     /// <summary>

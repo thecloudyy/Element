@@ -15,7 +15,8 @@ public class PluginAddService(
     ElementApiClient api,
     DownloadQueue queue,
     ManifestJobFactory jobs,
-    SettingsService settings)
+    SettingsService settings,
+    HubcapApiClient hubcap)
 {
     public class SourceRow
     {
@@ -88,6 +89,11 @@ public class PluginAddService(
             return;
         }
         PluginLog.Log($"PluginAdd.Pick appid={appId} source='{row.Name}' canDownload={row.CanDownload} needsKey={row.NeedsKey} -> downloading");
+        if (!row.CanDownload)
+        {
+            PluginLog.Log($"PluginAdd.Pick appid={appId} source='{row.Name}' -> locked/unavailable, refusing to start");
+            return;
+        }
         _ = Task.Run(() => DownloadAsync(appId, state, row));
     }
 
@@ -98,11 +104,14 @@ public class PluginAddService(
             var nameTask = string.IsNullOrEmpty(state.GameName) ? SafeGetGameNameAsync(appId) : null;
 
             // Hubcap first (Recommended) and live; Ryuu listed as-is with no checks.
+            // A key-gated source with no key is locked (mirrors the Add page),
+            // so the button offers it but won't start a doomed download.
             var statuses = new Dictionary<string, string>
             {
                 ["Hubcap"] = "available",
                 ["Ryuu"] = "available",
             };
+            bool hubcapLocked = !hubcap.HasKey;
 
             // The "Add with Element" button's configured API first (Built-In Button
             // Mode setting, Hubcap default), then Recommended, then key-gated.
@@ -113,12 +122,16 @@ public class PluginAddService(
                 .Select(kv =>
                 {
                     var meta = SourceMeta.Get(kv.Key);
+                    bool locked = meta.RequiresUserKey
+                        && string.Equals(kv.Key, "Hubcap", StringComparison.OrdinalIgnoreCase)
+                        && hubcapLocked;
                     return new SourceRow
                     {
                         Name = kv.Key,
                         DisplayName = meta.DisplayName ?? kv.Key,
-                        Status = kv.Value,
+                        Status = locked ? "unknown" : kv.Value,
                         NeedsKey = meta.RequiresUserKey,
+                        Locked = locked,
                     };
                 }).ToList();
 
@@ -154,6 +167,7 @@ public class PluginAddService(
     private async Task DownloadAsync(long appId, AddState state, SourceRow row)
     {
         if (state.Busy) return;
+        if (!row.CanDownload) return;
         state.Busy = true;
         state.Error = null;
         state.InstallStatus = null;
@@ -164,7 +178,7 @@ public class PluginAddService(
 
         try
         {
-            var job = jobs.CreateManifestJob(appId, state.GameName, row.Name, row.NeedsKey);
+            var job = jobs.CreateManifestJob(appId, state.GameName, row.Name);
             var item = queue.Enqueue(job);
 
             void OnChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

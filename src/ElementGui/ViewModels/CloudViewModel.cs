@@ -11,6 +11,7 @@ public partial class CloudViewModel : ObservableObject
     private readonly SettingsService _settings;
     private readonly SteamService _steam;
     private readonly ToastService _toast;
+    private readonly CacheService _cache;
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
     private const string CloudRedirectOwner = "Selectively11";
@@ -20,28 +21,54 @@ public partial class CloudViewModel : ObservableObject
     [ObservableProperty] private bool _isInstalled;
     [ObservableProperty] private string _installStatus = "";
     [ObservableProperty] private string _installStatusColor = "#6b7280";
+    [ObservableProperty] private string _syncEngineStatus = "";
+    [ObservableProperty] private string _syncEngineStatusColor = "#6b7280";
+    [ObservableProperty] private string _installedVersion = "—";
+    [ObservableProperty] private string _latestVersion = "…";
     [ObservableProperty] private string _installLog = "";
     [ObservableProperty] private bool _isBusy;
     [ObservableProperty] private bool _isEnabled;
     [ObservableProperty] private bool _autoSync;
+    [ObservableProperty] private bool _achievementsSync;
+    [ObservableProperty] private bool _playtimeSync;
+    [ObservableProperty] private bool _luaSync;
+    [ObservableProperty] private bool _schemaFetch;
     [ObservableProperty] private string _localPath = "";
     [ObservableProperty] private string _connectionStatus = "";
     [ObservableProperty] private string _connectionStatusColor = "#6b7280";
     [ObservableProperty] private bool _isChecking;
 
-    partial void OnIsEnabledChanged(bool value) => _settings.CloudEnabled = value;
+    partial void OnIsEnabledChanged(bool value)
+    {
+        _settings.CloudEnabled = value;
+        RefreshEngineStatus();
+    }
     partial void OnAutoSyncChanged(bool value) => _settings.CloudAutoSync = value;
+    partial void OnAchievementsSyncChanged(bool value) => _settings.CloudAchievementsSync = value;
+    partial void OnPlaytimeSyncChanged(bool value) => _settings.CloudPlaytimeSync = value;
+    partial void OnLuaSyncChanged(bool value) => _settings.CloudLuaSync = value;
+    partial void OnSchemaFetchChanged(bool value) => _settings.CloudSchemaFetch = value;
     partial void OnLocalPathChanged(string value) => _settings.CloudLocalPath = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    public CloudViewModel(SettingsService settings, SteamService steam, ToastService toast)
+    public CloudViewModel(SettingsService settings, SteamService steam, ToastService toast, CacheService cache)
     {
         _settings = settings;
         _steam = steam;
         _toast = toast;
+        _cache = cache;
 
         _isEnabled = settings.CloudEnabled;
         _autoSync = settings.CloudAutoSync;
-        _localPath = settings.CloudLocalPath ?? "";
+        _achievementsSync = settings.CloudAchievementsSync; // default ON. Init without triggering Save
+        _playtimeSync = settings.CloudPlaytimeSync;
+        _luaSync = settings.CloudLuaSync;
+        _schemaFetch = settings.CloudSchemaFetch;
+        _localPath = settings.CloudLocalPath ?? DefaultLocalCloudPath();
+        if (settings.CloudLocalPath is null)
+        {
+            // First run with the new default: actually make the folder.
+            try { Directory.CreateDirectory(_localPath); } catch { }
+        }
 
         CheckInstallStatus();
     }
@@ -54,6 +81,8 @@ public partial class CloudViewModel : ObservableObject
             IsInstalled = false;
             InstallStatus = Resources.Strings.Cloud_SteamNotFound;
             InstallStatusColor = "#f87171";
+            InstalledVersion = "—";
+            RefreshEngineStatus();
             return;
         }
 
@@ -63,13 +92,63 @@ public partial class CloudViewModel : ObservableObject
             IsInstalled = true;
             InstallStatus = Resources.Strings.Cloud_Installed;
             InstallStatusColor = "#34d399";
+            InstalledVersion = DisplayVersion(_cache.CloudRedirectVersion ?? ReadFileVersion(dllPath));
         }
         else
         {
             IsInstalled = false;
             InstallStatus = Resources.Strings.Cloud_NotInstalled;
             InstallStatusColor = "#6b7280";
+            InstalledVersion = "—";
         }
+        RefreshEngineStatus();
+        _ = RefreshLatestVersionAsync();
+    }
+
+    private static string DisplayVersion(string? tag)
+    {
+        if (string.IsNullOrWhiteSpace(tag) || tag == "—") return "—";
+        tag = tag.Trim();
+        return tag.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? tag : "v" + tag;
+    }
+
+    private static string ReadFileVersion(string dllPath)
+    {
+        try
+        {
+            var info = System.Diagnostics.FileVersionInfo.GetVersionInfo(dllPath);
+            return info.FileVersion ?? info.ProductVersion ?? "—";
+        }
+        catch { return "—"; }
+    }
+
+    private void RefreshEngineStatus()
+    {
+        if (!IsInstalled)
+        {
+            SyncEngineStatus = Resources.Strings.Cloud_NotInstalled;
+            SyncEngineStatusColor = "#6b7280";
+        }
+        else if (!IsEnabled)
+        {
+            SyncEngineStatus = Resources.Strings.Cloud_SyncPaused;
+            SyncEngineStatusColor = "#fbbf24";
+        }
+        else
+        {
+            SyncEngineStatus = Resources.Strings.Cloud_SyncActive;
+            SyncEngineStatusColor = "#34d399";
+        }
+    }
+
+    private async Task RefreshLatestVersionAsync()
+    {
+        try
+        {
+            var release = await GetLatestRelease();
+            LatestVersion = release is { Tag.Length: > 0 } ? release.Tag : "—";
+        }
+        catch { LatestVersion = "—"; }
     }
 
     [RelayCommand]
@@ -127,6 +206,7 @@ public partial class CloudViewModel : ObservableObject
 
             File.WriteAllBytes(dllPath, data);
             AppendLog(string.Format(Resources.Strings.Cloud_Log_Deployed, dllPath));
+            _cache.CloudRedirectVersion = release.Tag;
 
             AppendLog(Resources.Strings.Cloud_Log_RestartingSteam);
             _steam.StartSteam();
@@ -134,6 +214,8 @@ public partial class CloudViewModel : ObservableObject
             InstallStatus = Resources.Strings.Cloud_Installed;
             InstallStatusColor = "#34d399";
             IsInstalled = true;
+            InstalledVersion = DisplayVersion(_cache.CloudRedirectVersion);
+            RefreshEngineStatus();
             AppendLog(Resources.Strings.Cloud_Log_Done);
         }
         catch (Exception ex)
@@ -168,11 +250,14 @@ public partial class CloudViewModel : ObservableObject
             if (!File.Exists(dllPath))
             {
                 AppendLog(Resources.Strings.Cloud_Log_DllAlreadyRemoved);
-                IsInstalled = false;
-                InstallStatus = Resources.Strings.Cloud_NotInstalled;
-                InstallStatusColor = "#6b7280";
-                return;
-            }
+            IsInstalled = false;
+            InstallStatus = Resources.Strings.Cloud_NotInstalled;
+            InstallStatusColor = "#6b7280";
+            InstalledVersion = "—";
+            _cache.CloudRedirectVersion = null;
+            RefreshEngineStatus();
+            return;
+        }
 
             AppendLog(Resources.Strings.Cloud_Log_StoppingSteam);
             _steam.StopSteam();
@@ -187,6 +272,9 @@ public partial class CloudViewModel : ObservableObject
             IsInstalled = false;
             InstallStatus = Resources.Strings.Cloud_NotInstalled;
             InstallStatusColor = "#6b7280";
+            InstalledVersion = "—";
+            _cache.CloudRedirectVersion = null;
+            RefreshEngineStatus();
             AppendLog(Resources.Strings.Cloud_Log_UninstallDone);
         }
         catch (Exception ex)
@@ -198,6 +286,18 @@ public partial class CloudViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    [RelayCommand]
+    private void OpenSteamFolder()
+    {
+        try
+        {
+            string? steamPath = _steam.EffectivePath;
+            if (!string.IsNullOrEmpty(steamPath) && Directory.Exists(steamPath))
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(steamPath) { UseShellExecute = true });
+        }
+        catch { }
     }
 
     private void AppendLog(string message)
@@ -271,6 +371,15 @@ public partial class CloudViewModel : ObservableObject
         {
             IsChecking = false;
         }
+    }
+
+    /// <summary>Default local-cloud folder: &lt;Steam&gt;\localcloud
+    /// (C:\Program Files (x86)\Steam\localcloud for standard installs).</summary>
+    private string DefaultLocalCloudPath()
+    {
+        var steam = _steam.EffectivePath;
+        var baseDir = !string.IsNullOrEmpty(steam) ? steam : @"C:\Program Files (x86)\Steam";
+        return Path.Combine(baseDir, "localcloud");
     }
 
     [RelayCommand]

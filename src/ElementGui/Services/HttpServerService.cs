@@ -360,7 +360,7 @@ public class HttpServerService : IHostedService
             return (409, JsonErr("Download already in progress for this app"));
 
         var jobs = _services.GetRequiredService<Services.Downloads.ManifestJobFactory>();
-        _downloads[appId] = queue.Enqueue(jobs.CreateManifestJob(appId, null, source, needsKey: false));
+        _downloads[appId] = queue.Enqueue(jobs.CreateManifestJob(appId, null, source));
 
         return (200, Json(new { success = true }));
     }
@@ -525,15 +525,13 @@ public class HttpServerService : IHostedService
     {
         try
         {
-            // Frontend "Check for updates" → run the exact same update flow as Steam-open (app + plugin,
-            // with the sync app-restart), so the button can't leave the backend out of sync with a freshly
-            // updated plugin. Fire-and-forget: the flow may restart Steam and/or the app, so don't block the
-            // HTTP response on it. Fall back to the plain checks if the app flow isn't wired yet.
+            // Frontend "Check for updates" → run the exact same plugin update flow as Steam-open.
+            // Fire-and-forget: the flow may restart Steam, so don't block the
+            // HTTP response on it. Fall back to the plain check if the app flow isn't wired yet.
             if (App.RunUpdateFlow is { } flow)
                 _ = flow();
             else
             {
-                _ = _services.GetRequiredService<UpdateService>().CheckAndStageAsync();
                 _ = _services.GetRequiredService<PluginInstallerService>().AutoUpdateAsync();
             }
             return Task.FromResult((200, Json(new { success = true })));

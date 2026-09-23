@@ -95,6 +95,8 @@
   <data name="Settings_ResetToAuto" xml:space="preserve"><value>Reset to auto</value></data>
   <data name="Settings_AutoUpdateApps" xml:space="preserve"><value>Auto Update Apps (Don't Lock Manifests)</value></data>
   <data name="Settings_AutoUpdateApps_Hint" xml:space="preserve"><value>Installs without pinning a version, so Steam keeps games updated. Turn off to lock games to the downloaded version.</value></data>
+  <data name="Settings_AutoDownloadManifests" xml:space="preserve"><value>Auto Download Manifest Files</value></data>
+  <data name="Settings_AutoDownloadManifests_Hint" xml:space="preserve"><value>Fetch missing depot manifests automatically via ManifestDeX codes + Steam CDN. Turn off to abort the job instead when a manifest isn't on disk.</value></data>
   <data name="Settings_BuiltInButtonMode" xml:space="preserve"><value>Built-In Button Mode</value></data>
   <data name="Settings_BuiltInButtonMode_Hint" xml:space="preserve"><value>Which API the "Add with Element" store button uses. Hubcap is recommended.</value></data>
   <data name="Settings_DonateKeys" xml:space="preserve"><value>Donate Decryption Keys</value></data>
@@ -139,7 +141,27 @@
   <data name="Cloud_Section_General" xml:space="preserve"><value>GENERAL</value></data>
   <data name="Cloud_Section_Provider" xml:space="preserve"><value>CLOUD PROVIDER</value></data>
   <data name="Cloud_Section_Status" xml:space="preserve"><value>STATUS</value></data>
+  <data name="Cloud_Section_MetadataSync" xml:space="preserve"><value>Steam Metadata &amp; Statistics Sync</value></data>
+  <data name="Cloud_MetadataSync_Hint" xml:space="preserve"><value>Configure achievement unlocks, playtime tracking, and schema fetching behavior across devices.</value></data>
+  <data name="Cloud_AchievementsSync" xml:space="preserve"><value>Achievements Sync</value></data>
+  <data name="Cloud_AchievementsSync_Hint" xml:space="preserve"><value>Sync Achievements across devices via the provider</value></data>
+  <data name="Cloud_PlaytimeSync" xml:space="preserve"><value>Playtime Sync</value></data>
+  <data name="Cloud_PlaytimeSync_Hint" xml:space="preserve"><value>Sync playtime across devices via the provider</value></data>
+  <data name="Cloud_LuaSync" xml:space="preserve"><value>Lua Sync</value></data>
+  <data name="Cloud_LuaSync_Hint" xml:space="preserve"><value>Sync Lua manifest metadata across devices</value></data>
+  <data name="Cloud_SchemaFetch" xml:space="preserve"><value>Schema fetch</value></data>
+  <data name="Cloud_SchemaFetch_Hint" xml:space="preserve"><value>Fetch Steam UserGameStats schema when unavailable</value></data>
   <data name="Cloud_Section_LocalFolder" xml:space="preserve"><value>LOCAL FOLDER</value></data>
+  <data name="Cloud_EnableRedirection" xml:space="preserve"><value>Enable Cloud Save Redirection</value></data>
+  <data name="Cloud_EnableRedirection_Hint" xml:space="preserve"><value>Enable automatic save file redirection and background cloud synchronization</value></data>
+  <data name="Cloud_SyncEngine" xml:space="preserve"><value>Sync Engine:</value></data>
+  <data name="Cloud_SyncActive" xml:space="preserve"><value>Active &amp; Ready</value></data>
+  <data name="Cloud_SyncPaused" xml:space="preserve"><value>Installed · Paused</value></data>
+  <data name="Cloud_InstalledLabel" xml:space="preserve"><value>Installed:</value></data>
+  <data name="Cloud_LatestLabel" xml:space="preserve"><value>GitHub Release:</value></data>
+  <data name="Cloud_ReinstallEngine" xml:space="preserve"><value>Reinstall Sync Engine</value></data>
+  <data name="Cloud_UninstallEngine" xml:space="preserve"><value>Uninstall Sync Engine</value></data>
+  <data name="Cloud_OpenSteamFolder" xml:space="preserve"><value>Open Steam Folder</value></data>
   <data name="Cloud_DllStatus" xml:space="preserve"><value>CloudRedirect DLL</value></data>
   <data name="Cloud_Install" xml:space="preserve"><value>Install</value></data>
   <data name="Cloud_Uninstall" xml:space="preserve"><value>Uninstall</value></data>
@@ -270,6 +292,10 @@
   <data name="Manage_Action_CopyAppId" xml:space="preserve"><value>Copy App ID</value></data>
   <data name="Manage_Action_RemoveDrm" xml:space="preserve"><value>Remove Steam DRM</value></data>
   <data name="Manage_Action_ManageBuild" xml:space="preserve"><value>Manage Depots</value></data>
+  <data name="Manage_DownloadManifests" xml:space="preserve"><value>Download Manifests</value></data>
+  <data name="Manage_Toast_Manifests_Title" xml:space="preserve"><value>Manifests</value></data>
+  <data name="Manage_Toast_Manifests_None" xml:space="preserve"><value>No manifest pins found in any lua file.</value></data>
+  <data name="Manage_Toast_Manifests_Done" xml:space="preserve"><value>{0} downloaded, {1} already present, {2} failed.</value></data>
   <data name="Manage_AboutHeader" xml:space="preserve"><value>About</value></data>
   <data name="Manage_Info_Developer" xml:space="preserve"><value>Developer</value></data>
   <data name="Manage_Info_Publisher" xml:space="preserve"><value>Publisher</value></data>
@@ -399,6 +425,8 @@ This deletes the .lua files from Steam\config\stplug-in.</value></data>
   <data name="Add_Generating" xml:space="preserve"><value>Generating…</value></data>
   <data name="Add_DlcHint" xml:space="preserve"><value>Put the .lua into steam\config\stplug-in, and make sure the base game is added too. Counts toward your daily limit (25/day).</value></data>
   <data name="Add_AlreadyHaveFiles" xml:space="preserve"><value>Already have the files?</value></data>
+  <data name="Add_FixAvailable" xml:space="preserve"><value>Online fix available</value></data>
+  <data name="Add_CheckingFix" xml:space="preserve"><value>Checking for fixes…</value></data>
   <!-- Add / Download C# strings -->
   <data name="Add_Err_BaseGame" xml:space="preserve"><value>Could not resolve the base game for this DLC</value></data>
   <data name="Add_Err_Generic" xml:space="preserve"><value>Something went wrong. Check your connection and try again.</value></data>
@@ -592,6 +620,18 @@ This deletes the .lua files from Steam\config\stplug-in.</value></data>
   <data name="Downloads_Err_Interrupted" xml:space="preserve"><value>Interrupted when the app closed.</value></data>
   <data name="Downloads_Kind_Dlc" xml:space="preserve"><value>DLC unlock</value></data>
   <data name="Fixes_NotInstalled_Hint" xml:space="preserve"><value>Install the game first to apply a fix.</value></data>
+  <data name="Fixes_Select_Game_Folder_Title" xml:space="preserve"><value>Select {0} installation folder</value></data>
+  <data name="Fixes_Select_Game_Folder_WarnTitle" xml:space="preserve"><value>No game files found</value></data>
+  <data name="Fixes_Select_Game_Folder_WarnBody" xml:space="preserve"><value>No .exe files in {0}. Pick the folder containing the game's .exe. Use this folder anyway?</value></data>
+  <data name="Fixes_Toast_FolderCancelled" xml:space="preserve"><value>No folder selected</value></data>
+  <data name="Fixes_Toast_FolderCancelled_Body" xml:space="preserve"><value>Pick the game folder to apply the fix.</value></data>
+  <data name="Fixes_Applied" xml:space="preserve"><value>Applied</value></data>
+  <data name="Fixes_Applied_Count" xml:space="preserve"><value>{0} fixed games. Open one to revert.</value></data>
+  <data name="Fixes_Applied_Empty" xml:space="preserve"><value>No fixes applied yet — apply a fix to see it here.</value></data>
+  <data name="Fixes_Applied_Badge" xml:space="preserve"><value>FIXED</value></data>
+  <data name="Fixes_AddGame" xml:space="preserve"><value>Add game</value></data>
+  <data name="Fixes_Revert_CleanupFailed" xml:space="preserve"><value>Couldn't finish revert</value></data>
+  <data name="Fixes_Revert_CleanupFailed_Body" xml:space="preserve"><value>Files were restored but the revert record couldn't be removed. Close the game AND Steam (or run Element as administrator) and revert again.</value></data>
   <data name="Downloads_Status_Paused" xml:space="preserve"><value>Paused</value></data>
   <data name="Downloads_Status_Verifying" xml:space="preserve"><value>Verifying…</value></data>
   <data name="Downloads_Action_Pause" xml:space="preserve"><value>Pause</value></data>

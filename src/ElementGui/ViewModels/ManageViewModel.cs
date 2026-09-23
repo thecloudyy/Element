@@ -184,15 +184,14 @@ public partial class ManageViewModel : PagedListViewModel<LuaTileViewModel>
     private readonly ToastService _toast;
     private readonly SettingsService _settings;
     private readonly SteamlessService _steamless;
+    private readonly LuaVault _vault;
+    private readonly ManifestDownloadService _manifestDl;
 
     private List<LuaTileViewModel> _all = [];
     private CancellationTokenSource? _prefetchCts;
 
     /// <summary>Set by App so "Update" can navigate to the Add page pre-seeded with the appid.</summary>
     public Action<long>? NavigateToAdd { get; set; }
-
-    /// <summary>Set by App so "Manage Build" can open this game on the Builds page.</summary>
-    public Action<long>? NavigateToBuilds { get; set; }
 
     // Paging (Items/PageSize/CurrentPage/…), the filtered slice, refresh cooldown, IsLoading/EmptyMessage
     // and the empty-state gating all live in PagedListViewModel<LuaTileViewModel>.
@@ -256,8 +255,7 @@ public partial class ManageViewModel : PagedListViewModel<LuaTileViewModel>
     // IsLoading, EmptyMessage and the HasItems/ShowItems/IsEmpty gating are inherited from the base.
 
     // ── Detail flyout ───────────────────────────────────────────────
-    // The depot/DLC breakdown that used to live here now belongs to the Builds page (BuildsViewModel),
-    // where it can also show manifest pins per build. This flyout is cover + title + actions only.
+    // Cover + title + actions only (the old depot/DLC breakdown page was removed).
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDetailOpen))]
     private LuaTileViewModel? _selectedTile;
@@ -275,7 +273,7 @@ public partial class ManageViewModel : PagedListViewModel<LuaTileViewModel>
 
     public ManageViewModel(SteamService steam, SteamAppListCache appList, SteamAppInfoCache appInfo,
         CoverCache covers, ToastService toast, SettingsService settings,
-        SteamlessService steamless)
+        SteamlessService steamless, LuaVault vault, ManifestDownloadService manifestDl)
     {
         _steam = steam;
         _appList = appList;
@@ -284,6 +282,8 @@ public partial class ManageViewModel : PagedListViewModel<LuaTileViewModel>
         _toast = toast;
         _settings = settings;
         _steamless = steamless;
+        _vault = vault;
+        _manifestDl = manifestDl;
         InitPageSize(settings.ManagePageSize);
     }
 
@@ -308,6 +308,47 @@ public partial class ManageViewModel : PagedListViewModel<LuaTileViewModel>
 
         if (tile is not null) await OpenDetailAsync(tile);
         else _toast.Show(Resources.Strings.Manage_Toast_NotFound_Title, Resources.Strings.Manage_Toast_NotFound_Body, error: true);
+    }
+
+    /// <summary>Fetch every manifest pinned by any lua (vault, live, loose) into
+    /// depotcache via ManifestDeX codes + Steam CDN. Hubcap/Ryuu stay lua-only.</summary>
+    [RelayCommand]
+    private async Task DownloadAllManifests()
+    {
+        if (IsBusy) return;
+        IsBusy = true;
+        IsProgressIndeterminate = true;
+        Progress = 0;
+        try
+        {
+            var pins = await Task.Run(() => _vault.EnumerateAllManifestPins());
+            if (pins.Count == 0)
+            {
+                _toast.Show(Resources.Strings.Manage_Toast_Manifests_Title,
+                    Resources.Strings.Manage_Toast_Manifests_None, error: true);
+                return;
+            }
+
+            IsProgressIndeterminate = false;
+            var prog = new Progress<double>(p => { IsProgressIndeterminate = false; Progress = p * 100; });
+            var (ok, skipped, fail, failures) = await _manifestDl.EnsureManyAsync(pins, prog);
+            _toast.Show(Resources.Strings.Manage_Toast_Manifests_Title,
+                string.Format(Resources.Strings.Manage_Toast_Manifests_Done, ok, skipped, fail),
+                error: fail > 0 && ok == 0);
+            if (failures.Count > 0)
+                _toast.Show(Resources.Strings.Manage_Toast_Manifests_Title,
+                    string.Join("\n", failures.Take(5)) + (failures.Count > 5 ? "\n…" : ""),
+                    error: true);
+        }
+        catch (Exception ex)
+        {
+            _toast.Show(Resources.Strings.Manage_Toast_Manifests_Title, ex.Message, error: true);
+        }
+        finally
+        {
+            IsBusy = false;
+            IsProgressIndeterminate = false;
+        }
     }
 
     // ── Tile actions ────────────────────────────────────────────────
@@ -341,10 +382,6 @@ public partial class ManageViewModel : PagedListViewModel<LuaTileViewModel>
         SelectedTile = null;
         Overview = null;
     }
-
-    /// <summary>Open this game on the Builds page (switch build, inspect depots/manifests, edit).</summary>
-    [RelayCommand]
-    private void ManageBuild(LuaTileViewModel tile) => NavigateToBuilds?.Invoke(tile.AppId);
 
     /// <summary>Set by App. Opens the launch-option editor for a game (appid, name).</summary>
     public Action<long, string>? OpenLaunchOptions { get; set; }

@@ -19,8 +19,8 @@
             <TextBlock Text="{Binding Converter={StaticResource FilterOptionDisplay}}" />
         </DataTemplate>
 
-        <!-- The depot/DLC breakdown (RowButtonStyle + DepotRowTemplate) moved to BuildsView, which shows
-             it per build along with each depot's manifest pin. -->
+        <!-- The depot/DLC breakdown (RowButtonStyle + DepotRowTemplate) was removed
+             along with the Depots page. -->
     </UserControl.Resources>
 
     <Grid x:Name="Root" Margin="8,16,16,8">
@@ -41,12 +41,17 @@
             <StackPanel>
                 <TextBlock FontSize="22" FontWeight="Bold" Text="{x:Static res:Strings.Manage_Title}" />
             </StackPanel>
-            <ui:Button
-                Grid.Column="1"
-                VerticalAlignment="Top"
-                Command="{Binding RefreshCommand}"
-                Content="{x:Static res:Strings.Manage_Refresh}"
-                Icon="{ui:SymbolIcon ArrowSync24}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                <ui:Button
+                    Margin="0,0,8,0"
+                    Command="{Binding DownloadAllManifestsCommand}"
+                    Content="{x:Static res:Strings.Manage_DownloadManifests}"
+                    Icon="{ui:SymbolIcon ArrowDownload24}" />
+                <ui:Button
+                    Command="{Binding RefreshCommand}"
+                    Content="{x:Static res:Strings.Manage_Refresh}"
+                    Icon="{ui:SymbolIcon ArrowSync24}" />
+            </StackPanel>
         </Grid>
 
         <!-- Search + Filters toggle -->
@@ -186,11 +191,6 @@
                                     CommandParameter="{Binding}"
                                     Header="{x:Static res:Strings.Manage_Action_ViewDetails}"
                                     Icon="{ui:SymbolIcon Info24}" />
-                                <MenuItem
-                                    Command="{Binding PlacementTarget.Tag.ManageBuildCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
-                                    CommandParameter="{Binding}"
-                                    Header="{x:Static res:Strings.Manage_Action_ManageBuild}"
-                                    Icon="{ui:SymbolIcon BranchFork24}" />
                                 <Separator />
                                 <MenuItem
                                     Command="{Binding PlacementTarget.Tag.UpdateCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
@@ -718,15 +718,9 @@
                             Visibility="{Binding DataContext.IsBusy, ElementName=Root, Converter={StaticResource BoolToVis}}" />
 
                         <ui:Button
+                            Margin="0,0,0,0"
                             HorizontalAlignment="Stretch"
                             Appearance="Primary"
-                            Command="{Binding DataContext.ManageBuildCommand, ElementName=Root}"
-                            CommandParameter="{Binding}"
-                            Content="{x:Static res:Strings.Manage_Action_ManageBuild}"
-                            Icon="{ui:SymbolIcon BranchFork24}" />
-                        <ui:Button
-                            Margin="0,8,0,0"
-                            HorizontalAlignment="Stretch"
                             Command="{Binding DataContext.UpdateCommand, ElementName=Root}"
                             CommandParameter="{Binding}"
                             Content="{x:Static res:Strings.Manage_Action_Update}"

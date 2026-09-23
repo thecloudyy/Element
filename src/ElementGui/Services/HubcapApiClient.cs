@@ -12,7 +12,7 @@ namespace ElementGui.Services;
 /// Typed client for the Hubcap API (hubcapmanifest.com).
 /// Limited by daily quota: /status and /search are free, /lua and /manifest count toward usage.
 /// </summary>
-public class HubcapApiClient(SettingsService settings)
+public class HubcapApiClient()
 {
     private readonly HttpClient _http = new()
     {
@@ -22,10 +22,8 @@ public class HubcapApiClient(SettingsService settings)
 
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
-    /// <summary>Active Hubcap key: user setting first, hardcoded HubcapKey, then AuthKey fallback.</summary>
-    public string? ActiveKey => !string.IsNullOrWhiteSpace(settings.HubcapKey) ? settings.HubcapKey
-        : !string.IsNullOrWhiteSpace(AppConfig.HubcapKey) ? AppConfig.HubcapKey
-        : AppConfig.AuthKey;
+    /// <summary>Active Hubcap key: the machine-local build secret (env-baked, never in the repo).</summary>
+    public string? ActiveKey => string.IsNullOrWhiteSpace(BuildSecrets.HubcapKey) ? null : BuildSecrets.HubcapKey;
 
     public bool HasKey => !string.IsNullOrWhiteSpace(ActiveKey);
 
@@ -106,29 +104,6 @@ public class HubcapApiClient(SettingsService settings)
                 return new DownloadedFile(withExt, $"{appid}.lua");
         }
         return staged;
-    }
-
-    /// <summary>
-    /// Download the manifest ZIP for an app. Counts toward daily usage.
-    /// </summary>
-    public async Task<DownloadedFile> DownloadManifestAsync(
-        string appid, IProgress<DownloadProgress>? progress, CancellationToken ct = default)
-    {
-        var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/manifest/{Uri.EscapeDataString(appid)}");
-        AddAuth(req);
-        var res = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
-        if (res.StatusCode == HttpStatusCode.NotFound)
-            throw new ApiException("No Hubcap manifest is available for this app.", res.StatusCode);
-        if (res.StatusCode == HttpStatusCode.Unauthorized || res.StatusCode == HttpStatusCode.Forbidden)
-            throw new ApiException("Your Hubcap key is invalid or expired.", res.StatusCode);
-        if (res.StatusCode == (HttpStatusCode)429)
-            throw new ApiException("Your Hubcap daily limit has been reached.", res.StatusCode);
-        if (!res.IsSuccessStatusCode)
-        {
-            string? detail = await TryReadErrorAsync(res, ct);
-            throw new ApiException($"Hubcap download failed ({(int)res.StatusCode}{(detail is not null ? $" — {detail}" : "")})", res.StatusCode);
-        }
-        return await HttpFileDownloader.SaveResponseAsync(res, $"{appid}_hubcap.zip", progress, ct);
     }
 
     public record HubcapUsage(int Used, int Limit);

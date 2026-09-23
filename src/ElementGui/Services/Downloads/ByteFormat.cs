@@ -6,8 +6,8 @@ namespace ElementGui.Services.Downloads;
 /// Display formatting for download metrics: transferred size, transfer rate and remaining time.
 /// </summary>
 /// <remarks>
-/// Intentionally separate from the <c>FormatSize</c> helpers in <c>DownloadViewModel</c>,
-/// <c>BuildsViewModel</c> and <c>DropInstallViewModel</c>. Those format *depot* sizes for diff rows:
+/// Intentionally separate from the <c>FormatSize</c> helpers in <c>DownloadViewModel</c>
+/// and <c>DropInstallViewModel</c>. Those format *depot* sizes for diff rows:
 /// they floor at MB and return an empty string for zero, which is right for a depot list but wrong for
 /// live progress, where a small lua file is a few KB and "0" must render as "0 B" rather than vanish.
 ///

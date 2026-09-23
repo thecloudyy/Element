@@ -21,6 +21,11 @@ public class AppSettings
     // tell "never set" (→ default ON) from an explicit user choice.
     public bool? AutoUpdateApps { get; set; }
 
+    // When true (default), missing depot manifests are auto-downloaded via
+    // ManifestDeX request codes + Steam CDN instead of aborting the job.
+    // Nullable so "never set" (→ default ON) is distinguishable.
+    public bool? AutoDownloadManifests { get; set; }
+
 
 
     // Manage-page results-per-page. 0 = "All" (single infinite scroll). Nullable so "never set"
@@ -58,6 +63,11 @@ public class AppSettings
     public bool? CloudEnabled { get; set; }
     public string? CloudProvider { get; set; }  // "GoogleDrive" | "OneDrive" | "CloudflareR2" | "S3" | "Local"
     public bool? CloudAutoSync { get; set; }
+    // Steam Metadata & Statistics Sync toggles. Nullable so "never set" (→ default ON) is distinguishable.
+    public bool? CloudAchievementsSync { get; set; }
+    public bool? CloudPlaytimeSync { get; set; }
+    public bool? CloudLuaSync { get; set; }
+    public bool? CloudSchemaFetch { get; set; }
     public string? CloudPath { get; set; }      // provider path (Google Drive / OneDrive subfolder)
     public string? CloudLocalPath { get; set; } // local folder path for Local provider
     public string? CloudS3Endpoint { get; set; }
@@ -65,6 +75,10 @@ public class AppSettings
     public string? CloudS3AccessKey { get; set; }
     public string? CloudS3SecretKey { get; set; }
     public string? CloudS3Prefix { get; set; }
+
+    // Manual game-install overrides: appid (string) -> install folder picked by the user in the
+    // Fixes page popup when auto-detection via Steam libraries fails.
+    public Dictionary<string, string>? ManualInstallDirs { get; set; }
 
 }
 
@@ -108,6 +122,13 @@ public class SettingsService
     {
         get => _settings.AutoUpdateApps ?? true; // default ON
         set { _settings.AutoUpdateApps = value; Save(); }
+    }
+
+    /// <summary>When true (default), missing depot manifests auto-download instead of aborting the job.</summary>
+    public bool AutoDownloadManifests
+    {
+        get => _settings.AutoDownloadManifests ?? true; // default ON
+        set { _settings.AutoDownloadManifests = value; Save(); }
     }
 
     /// <summary>Manage-page results-per-page (default 24). 0 = "All" (single infinite scroll).</summary>
@@ -188,6 +209,34 @@ public class SettingsService
         set { _settings.CloudAutoSync = value; Save(); }
     }
 
+    /// <summary>When true (default), achievements sync across devices via the provider.</summary>
+    public bool CloudAchievementsSync
+    {
+        get => _settings.CloudAchievementsSync ?? true; // default ON
+        set { _settings.CloudAchievementsSync = value; Save(); }
+    }
+
+    /// <summary>When true (default), playtime syncs across devices via the provider.</summary>
+    public bool CloudPlaytimeSync
+    {
+        get => _settings.CloudPlaytimeSync ?? true; // default ON
+        set { _settings.CloudPlaytimeSync = value; Save(); }
+    }
+
+    /// <summary>When true (default), lua manifest metadata syncs across devices.</summary>
+    public bool CloudLuaSync
+    {
+        get => _settings.CloudLuaSync ?? true; // default ON
+        set { _settings.CloudLuaSync = value; Save(); }
+    }
+
+    /// <summary>When true (default), the Steam UserGameStats schema is fetched when unavailable.</summary>
+    public bool CloudSchemaFetch
+    {
+        get => _settings.CloudSchemaFetch ?? true; // default ON
+        set { _settings.CloudSchemaFetch = value; Save(); }
+    }
+
     /// <summary>Cloud provider path/subfolder, or null if never set.</summary>
     public string? CloudPath
     {
@@ -235,6 +284,42 @@ public class SettingsService
     {
         get => _settings.CloudS3Prefix;
         set { _settings.CloudS3Prefix = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); Save(); }
+    }
+
+    /// <summary>Manual install folder for a game (set via the Fixes popup), or null.</summary>
+    public string? GetManualInstallDir(long appId)
+    {
+        if (_settings.ManualInstallDirs is not null
+            && _settings.ManualInstallDirs.TryGetValue(appId.ToString(), out string? dir)
+            && !string.IsNullOrWhiteSpace(dir)
+            && Directory.Exists(dir))
+            return dir;
+        return null;
+    }
+
+    public void SetManualInstallDir(long appId, string dir)
+    {
+        _settings.ManualInstallDirs ??= new Dictionary<string, string>();
+        _settings.ManualInstallDirs[appId.ToString()] = dir;
+        Save();
+    }
+
+    public void ClearManualInstallDir(long appId)
+    {
+        if (_settings.ManualInstallDirs?.Remove(appId.ToString()) == true) Save();
+    }
+
+    /// <summary>Every stored manual override (appid -> folder), pruned to folders still on disk.</summary>
+    public IReadOnlyDictionary<long, string> GetManualInstallDirs()
+    {
+        var result = new Dictionary<long, string>();
+        if (_settings.ManualInstallDirs is null) return result;
+        foreach (var (k, v) in _settings.ManualInstallDirs)
+        {
+            if (long.TryParse(k, out long id) && !string.IsNullOrWhiteSpace(v) && Directory.Exists(v))
+                result[id] = v;
+        }
+        return result;
     }
 
     private static readonly string TmpPath = FilePath + ".tmp";
@@ -287,6 +372,7 @@ public class SettingsService
         bool empty = _settings.SteamPathOverride is null
             && _settings.SelectedMode is null
             && _settings.AutoUpdateApps is null
+            && _settings.AutoDownloadManifests is null
             && _settings.ManagePageSize is null
             && _settings.FixesPageSize is null
             && _settings.BuildsPageSize is null
@@ -299,13 +385,18 @@ public class SettingsService
             && _settings.CloudEnabled is null
             && _settings.CloudProvider is null
             && _settings.CloudAutoSync is null
+            && _settings.CloudAchievementsSync is null
+            && _settings.CloudPlaytimeSync is null
+            && _settings.CloudLuaSync is null
+            && _settings.CloudSchemaFetch is null
             && _settings.CloudPath is null
             && _settings.CloudLocalPath is null
             && _settings.CloudS3Endpoint is null
             && _settings.CloudS3Bucket is null
             && _settings.CloudS3AccessKey is null
             && _settings.CloudS3SecretKey is null
-            && _settings.CloudS3Prefix is null;
+            && _settings.CloudS3Prefix is null
+            && (_settings.ManualInstallDirs is null || _settings.ManualInstallDirs.Count == 0);
         if (empty)
         {
             foreach (var p in new[] { FilePath, BakPath, TmpPath })

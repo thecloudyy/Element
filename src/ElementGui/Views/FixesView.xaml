@@ -97,6 +97,41 @@
                     </ControlTemplate>
                 </ToggleButton.Template>
             </ToggleButton>
+            <ToggleButton
+                Margin="0,0,8,6"
+                Cursor="Hand"
+                Foreground="#34d399"
+                IsChecked="{Binding AppliedOnly}"
+                ToolTip="{Binding AppliedHint}">
+                <ToggleButton.Template>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border
+                            x:Name="Pill"
+                            Padding="10,4"
+                            Background="#1434d399"
+                            BorderBrush="#4034d399"
+                            BorderThickness="1"
+                            CornerRadius="6">
+                            <TextBlock
+                                x:Name="PillText"
+                                FontSize="11.5"
+                                FontWeight="SemiBold"
+                                Foreground="#34d399"
+                                Text="{x:Static res:Strings.Fixes_Applied}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Pill" Property="Background" Value="#34d399" />
+                                <Setter TargetName="Pill" Property="BorderBrush" Value="#34d399" />
+                                <Setter TargetName="PillText" Property="Foreground" Value="#ffffff" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Pill" Property="Background" Value="#2834d399" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </ToggleButton.Template>
+            </ToggleButton>
             <ItemsControl ItemsSource="{Binding Tags}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -225,7 +260,23 @@
                                     CornerRadius="10">
                                     <StackPanel>
                                         <Border Height="116" Background="#11FFFFFF" ClipToBounds="True" CornerRadius="10,10,0,0">
-                                            <Image Source="{Binding Cover, Converter={StaticResource ImagePathToSource}}" Stretch="UniformToFill" />
+                                            <Grid>
+                                                <Image Source="{Binding Cover, Converter={StaticResource ImagePathToSource}}" Stretch="UniformToFill" />
+                                                <Border
+                                                    Margin="8,8,0,0"
+                                                    Padding="6,2"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Top"
+                                                    Background="#34d399"
+                                                    CornerRadius="4"
+                                                    Visibility="{Binding HasAppliedFix, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock
+                                                        FontSize="10"
+                                                        FontWeight="Bold"
+                                                        Foreground="#ffffff"
+                                                        Text="{x:Static res:Strings.Fixes_Applied_Badge}" />
+                                                </Border>
+                                            </Grid>
                                         </Border>
                                         <StackPanel Margin="12,8,12,10">
                                             <TextBlock
@@ -234,7 +285,7 @@
                                                 Foreground="#e5e7eb"
                                                 Text="{Binding Name}"
                                                 TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Margin="0,3,0,0" FontSize="11.5" Foreground="#6b7280" Text="{Binding FixCountLabel}" />
+                                            <TextBlock Margin="0,3,0,0" FontSize="11.5" Foreground="#6b7280" Text="{Binding FixCountLabel}" Visibility="{Binding ShowFixCount, Converter={StaticResource BoolToVis}}" />
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -552,6 +603,13 @@
                                                         ToolTip="{Binding FixHint}"
                                                         ToolTipService.ShowOnDisabled="True"
                                                         Visibility="{Binding HasFix, Converter={StaticResource BoolToVis}}" />
+                                                    <ui:Button
+                                                        Margin="0,0,10,0"
+                                                        Padding="14,7"
+                                                        Command="{Binding DataContext.AddGameCommand, ElementName=Root}"
+                                                        Content="{x:Static res:Strings.Fixes_AddGame}"
+                                                        Icon="{ui:SymbolIcon ArrowDownload24}"
+                                                        Visibility="{Binding DataContext.ShowAddGame, ElementName=Root, Converter={StaticResource BoolToVis}}" />
                                                     <ui:Button
                                                         Margin="0,0,10,0"
                                                         Padding="14,7"

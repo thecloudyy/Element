@@ -41,6 +41,7 @@ public partial class App : Application
                 services.AddSingleton<SteamlessService>();
                 services.AddSingleton<SteamAutoCrackService>();
                 services.AddSingleton<DepotDownloaderService>();
+                services.AddSingleton<ManifestDownloadService>();
                 services.AddSingleton<DepotCacheMigrationService>();
                 services.AddSingleton<AppliedFixIndexService>();
                 services.AddSingleton<UnlockerService>();
@@ -48,7 +49,7 @@ public partial class App : Application
                 services.AddTransient<DropInstallViewModel>(); // one per page (Home, Add)
                 services.AddSingleton<ElementApiClient>();
                 services.AddSingleton<HubcapApiClient>();
-                services.AddSingleton<UpdateService>();
+                services.AddSingleton<OnlineFixesService>();
                 // Central download queue. Singleton + hosted service (same pattern as HttpServerService
                 // below): the hosted lifetime runs the scheduler pump, and view models resolve the same
                 // instance to enqueue and observe.
@@ -66,7 +67,6 @@ public partial class App : Application
                 services.AddSingleton<DownloadViewModel>();
                 services.AddSingleton<SettingsViewModel>();
                 services.AddSingleton<ManageViewModel>();
-                services.AddSingleton<BuildsViewModel>();
                 services.AddTransient<LaunchOptionsViewModel>(); // one per dialog
                 services.AddSingleton<HomeViewModel>();
                 services.AddSingleton<FixesViewModel>();
@@ -80,7 +80,6 @@ public partial class App : Application
                 services.AddSingleton<DownloadView>();
                 services.AddSingleton<DownloadsView>();
                 services.AddSingleton<ManageView>();
-                services.AddSingleton<BuildsView>();
                 services.AddSingleton<FixesView>();
                 services.AddSingleton<PluginView>();
                 services.AddSingleton<CloudView>();
@@ -89,8 +88,6 @@ public partial class App : Application
             })
             .Build();
     }
-
-    private UpdateService Updates => _host.Services.GetRequiredService<UpdateService>();
 
     // Guards RunUpdateFlowAsync so overlapping triggers (startup + the re-poke a DLL/Steam restart causes)
     // never run it concurrently. A second caller drops out immediately.
@@ -167,38 +164,15 @@ public partial class App : Application
     /// /check-updates HTTP handler) can run the exact same update flow instead of a divergent one.</summary>
     internal static Func<Task>? RunUpdateFlow;
 
-    /// <summary>The Steam-open update flow (fully silent): update the APP first, unconditionally, before
-    /// ever touching the plugin. Then, once the running app is guaranteed current, check/apply a plugin
-    /// update against it. Called on a loader (--tray-locked) launch and on the Steam-open re-check poke;
-    /// safe to call repeatedly.
-    /// <para>
-    /// App-before-plugin is load-bearing, not just tidy ordering: the app and plugin are NOT independently
-    /// safe to update out of order whenever a plugin release changes something the app's own compiled code
-    /// depends on (e.g. <see cref="Services.CefInjectorService"/>'s CDP port is a compile-time constant.
-    /// An old app build talking to a freshly-updated plugin that moved the port simply can't connect, and
-    /// won't self-heal until the app itself happens to update, which is not guaranteed to land in the same
-    /// pass: the app and plugin ship from separate repos on separate cadences, so one can succeed while the
-    /// other fails/lags). Restarting into the latest app FIRST, before it goes anywhere near a plugin
-    /// update, means whatever the plugin changes is always applied by a process that already understands
-    /// it.
-    /// </para></summary>
+    /// <summary>The Steam-open update flow: check/apply a plugin update. Called on
+    /// a loader (--tray-locked) launch and on the Steam-open re-check poke; safe to
+    /// call repeatedly. The app itself never self-updates (no Velopack update flow).</summary>
     private async Task RunUpdateFlowAsync()
     {
         if (!_updateFlowGate.Wait(0)) return; // another run already in progress
         try
         {
-            // 1) Stage + immediately apply any app update, before touching the plugin at all.
-            //    ApplyAndRestart() terminates this process; the relaunched instance (launched with
-            //    --tray-locked) re-enters this same flow via OnStartup once it's already current, so this
-            //    run's job ends here. There is nothing safe left for THIS process to do.
-            try { await Updates.CheckAndStageAsync(); } catch { /* offline / not installed */ }
-            if (Updates.HasStagedUpdate)
-            {
-                Dispatcher.Invoke(() => Updates.ApplyAndRestart(new[] { "--minimized", "--tray-locked" }));
-                return;
-            }
-
-            // 2) No app update pending: safe to check/apply a plugin update against this (already-current) app.
+            // No app update pending, ever: check/apply a plugin update against this app.
             try
             {
                 var installer = _host.Services.GetRequiredService<PluginInstallerService>();
@@ -345,11 +319,6 @@ public partial class App : Application
         manage.NavigateToAdd = appId =>
             Dispatcher.Invoke(() => { window.NavigateToAdd(); download.SeedSearch(appId); });
 
-        // Manage flyout "Manage Build" ? go to the Builds page with that game selected.
-        var builds = _host.Services.GetRequiredService<BuildsViewModel>();
-        manage.NavigateToBuilds = appId =>
-            Dispatcher.Invoke(() => { window.NavigateToBuilds(); _ = builds.SelectAppAsync(appId); });
-
         // Manage flyout "Launch options�" ? modal editor over Steam's appinfo cache.
         manage.OpenLaunchOptions = (appId, name) => Dispatcher.Invoke(() =>
         {
@@ -379,9 +348,15 @@ public partial class App : Application
         _host.Services.GetRequiredService<DownloadsViewModel>().RevealItem = _ => window.NavigateToAdd();
 
         download.NavigateToGame = openInManage;
-        builds.NavigateToManage = openInManage; // Builds "Manage" button: the reverse of "Manage Build"
-        // Depot download queues one item covering the whole selection; show the user where it went.
-        builds.RequestShowDownloads = () => Dispatcher.Invoke(window.NavigateToDownloads);
+
+        // Add tab "Online fix" row with several fixes ? open that game on the Fixes page.
+        var fixesVm = _host.Services.GetRequiredService<FixesViewModel>();
+        download.NavigateToFixes = appId =>
+            Dispatcher.Invoke(() => { window.NavigateToFixes(); _ = fixesVm.OpenForAppIdAsync(appId); });
+
+        // Fixes flyout "Add game" ? go to the Add page pre-seeded with that appid.
+        fixesVm.NavigateToAdd = appId =>
+            Dispatcher.Invoke(() => { window.NavigateToAdd(); download.SeedSearch(appId); });
 
         // Dragging a SteamDB / Steam store link onto either drop box installs that appid. Routed through
         // HandleProtocolUrl rather than calling ProtocolInstall directly, so a dropped link and
@@ -410,7 +385,6 @@ public partial class App : Application
         luaInstaller.Installed += appId => Dispatcher.InvokeAsync(async () =>
         {
             _ = manage.LoadAsync();            // re-scan so Manage updates too if it's the visible page
-            _ = builds.LoadAsync();            // a newly installed lua is a new variant in the vault
             await home.RefreshLibraryAsync();  // game appears (its cover may lag for newer titles)
 
             // Newer titles have no guessable header URL: the classic CDN path 404s and the real header is
@@ -467,10 +441,9 @@ public partial class App : Application
         if (url is not null)
             HandleProtocolUrl(url);
 
-        // Background, non-blocking Steam-open update flow (app + plugin), but ONLY in the loader context
+        // Background Steam-open plugin update flow, but ONLY in the loader context
         // (--tray-locked). A manual / protocol / silent-install launch skips it, so the app never
-        // auto-updates or restarts mid-manual-use. It only happens when Steam launches us. (Velopack only
-        // updates to a STRICTLY HIGHER version, so every release must bump --packVersion.)
+        // restarts mid-manual-use. It only happens when Steam launches us.
         if (Program.SessionTrayLock)
             _ = RunUpdateFlowAsync();
 
@@ -487,10 +460,6 @@ public partial class App : Application
 
     protected override async void OnExit(ExitEventArgs e)
     {
-        // If an update was downloaded but not yet applied, stage it for after exit.
-        if (Updates.HasStagedUpdate)
-            Updates.ApplyOnExit();
-
         await _host.StopAsync();
         _host.Dispose();
         base.OnExit(e);

@@ -36,24 +36,42 @@
             <TextBlock FontSize="22" FontWeight="Bold" Text="{x:Static res:Strings.Cloud_Title}" />
 
             <!-- SETUP -->
-            <TextBlock Style="{StaticResource SectionHeader}" Text="{x:Static res:Strings.Cloud_Section_Setup}" />
+            <Grid Margin="0,24,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:SymbolIcon Symbol="Cloud24" FontSize="16" Foreground="#3b82f6" VerticalAlignment="Center" />
+                    <TextBlock Margin="8,0,0,0" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Text="{x:Static res:Strings.Cloud_EnableRedirection}" />
+                </StackPanel>
+                <ui:ToggleSwitch Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
+            </Grid>
+            <TextBlock FontSize="12" Foreground="#6b7280" Text="{x:Static res:Strings.Cloud_EnableRedirection_Hint}" TextWrapping="Wrap" Margin="0,0,0,8" />
             <Border Style="{StaticResource SettingsCard}">
                 <StackPanel>
-                    <Grid Margin="14,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock FontSize="13" FontWeight="Medium" Text="{x:Static res:Strings.Cloud_DllStatus}" />
-                            <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="{Binding InstallStatusColor}" Text="{Binding InstallStatus}" TextWrapping="Wrap" />
-                        </StackPanel>
-                        <ui:SymbolIcon Grid.Column="1" Margin="12,0,0,0" Symbol="PlugConnected24" FontSize="24" Foreground="{Binding InstallStatusColor}" />
-                    </Grid>
-                    <Border Style="{StaticResource RowDivider}" />
+                    <Border Background="#0AFFFFFF" BorderBrush="#12FFFFFF" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="14,12,14,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock FontSize="12.5" Foreground="#9ca3af" Text="{x:Static res:Strings.Cloud_SyncEngine}" />
+                                <TextBlock Margin="6,0,0,0" FontSize="12.5" FontWeight="SemiBold" Foreground="{Binding SyncEngineStatusColor}" Text="{Binding SyncEngineStatus}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock FontSize="12.5" Foreground="#9ca3af" Text="{x:Static res:Strings.Cloud_InstalledLabel}" />
+                                <TextBlock Margin="4,0,0,0" FontSize="12.5" FontWeight="SemiBold" Text="{Binding InstalledVersion}" />
+                                <TextBlock Margin="12,0,0,0" FontSize="12.5" Foreground="#9ca3af" Text="{x:Static res:Strings.Cloud_LatestLabel}" />
+                                <TextBlock Margin="4,0,0,0" FontSize="12.5" FontWeight="SemiBold" Foreground="#60a5fa" Text="{Binding LatestVersion}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
                     <StackPanel Margin="14,12" Orientation="Horizontal">
-                        <ui:Button Command="{Binding InstallCommand}" Content="{x:Static res:Strings.Cloud_Install}" Icon="{ui:SymbolIcon ArrowDownload24}" Appearance="Primary" Margin="0,0,8,0" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}" />
-                        <ui:Button Command="{Binding UninstallCommand}" Content="{x:Static res:Strings.Cloud_Uninstall}" Icon="{ui:SymbolIcon Delete24}" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}" />
+                        <ui:Button Command="{Binding InstallCommand}" Content="{x:Static res:Strings.Cloud_ReinstallEngine}" Icon="{ui:SymbolIcon ArrowDownload24}" Appearance="Primary" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}" />
+                        <ui:Button Command="{Binding UninstallCommand}" Content="{x:Static res:Strings.Cloud_UninstallEngine}" Icon="{ui:SymbolIcon Delete24}" Margin="8,0,0,0" IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBool}}" />
+                        <ui:Button Command="{Binding OpenSteamFolderCommand}" Content="{x:Static res:Strings.Cloud_OpenSteamFolder}" Icon="{ui:SymbolIcon FolderOpen24}" Margin="8,0,0,0" />
                     </StackPanel>
                     <Border Background="#0a000000" BorderBrush="#12ffffff" BorderThickness="1" CornerRadius="4" Padding="8" Margin="14,0,14,12" MinHeight="120" MaxHeight="240">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -67,18 +85,6 @@
             <TextBlock Style="{StaticResource SectionHeader}" Text="{x:Static res:Strings.Cloud_Section_General}" />
             <Border Style="{StaticResource SettingsCard}">
                 <StackPanel>
-                    <Grid Margin="14,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock FontSize="13" FontWeight="Medium" Text="{x:Static res:Strings.Cloud_Enabled}" />
-                            <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="#6b7280" Text="{x:Static res:Strings.Cloud_Enabled_Hint}" TextWrapping="Wrap" />
-                        </StackPanel>
-                        <ui:ToggleSwitch Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
-                    </Grid>
-                    <Border Style="{StaticResource RowDivider}" />
                     <Grid Margin="14,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -114,6 +120,64 @@
                             <ui:TextBox Grid.Column="0" VerticalAlignment="Center" Text="{Binding LocalPath, Mode=TwoWay}" PlaceholderText="C:\Saves" />
                             <ui:Button Grid.Column="1" Margin="8,0,0,0" Command="{Binding BrowseLocalFolderCommand}" Content="..." Padding="8,4" />
                         </Grid>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- METADATA SYNC -->
+            <StackPanel Margin="0,24,0,8" Orientation="Horizontal">
+                <ui:SymbolIcon Symbol="ArrowSync24" FontSize="16" Foreground="#3b82f6" VerticalAlignment="Center" />
+                <TextBlock Margin="8,0,0,0" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Text="{x:Static res:Strings.Cloud_Section_MetadataSync}" />
+            </StackPanel>
+            <TextBlock FontSize="12" Foreground="#6b7280" Text="{x:Static res:Strings.Cloud_MetadataSync_Hint}" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <Border Style="{StaticResource SettingsCard}">
+                <StackPanel>
+                    <Grid Margin="14,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock FontSize="13" FontWeight="Medium" Text="{x:Static res:Strings.Cloud_AchievementsSync}" />
+                            <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="#6b7280" Text="{x:Static res:Strings.Cloud_AchievementsSync_Hint}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding AchievementsSync, Mode=TwoWay}" />
+                    </Grid>
+                    <Border Style="{StaticResource RowDivider}" />
+                    <Grid Margin="14,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock FontSize="13" FontWeight="Medium" Text="{x:Static res:Strings.Cloud_PlaytimeSync}" />
+                            <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="#6b7280" Text="{x:Static res:Strings.Cloud_PlaytimeSync_Hint}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding PlaytimeSync, Mode=TwoWay}" />
+                    </Grid>
+                    <Border Style="{StaticResource RowDivider}" />
+                    <Grid Margin="14,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock FontSize="13" FontWeight="Medium" Text="{x:Static res:Strings.Cloud_LuaSync}" />
+                            <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="#6b7280" Text="{x:Static res:Strings.Cloud_LuaSync_Hint}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding LuaSync, Mode=TwoWay}" />
+                    </Grid>
+                    <Border Style="{StaticResource RowDivider}" />
+                    <Grid Margin="14,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock FontSize="13" FontWeight="Medium" Text="{x:Static res:Strings.Cloud_SchemaFetch}" />
+                            <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="#6b7280" Text="{x:Static res:Strings.Cloud_SchemaFetch_Hint}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ui:ToggleSwitch Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" IsChecked="{Binding SchemaFetch, Mode=TwoWay}" />
                     </Grid>
                 </StackPanel>
             </Border>

@@ -21,18 +21,18 @@ public class BuildsActiveHashTests
 
     [Fact]
     public void LiveMatchingAStoredVariant_IsThatVariant() =>
-        Assert.Equal("aaa", BuildsViewModel.ResolveActiveHash("aaa", Stored, editBase: null));
+        Assert.Equal("aaa", LuaVault.ResolveActiveHash("aaa", Stored, editBase: null));
 
     /// <summary>The regression: an edit in progress must keep its own row active.</summary>
     [Fact]
     public void LiveMatchingNothing_ResolvesToTheVariantBeingEdited() =>
-        Assert.Equal("aaa", BuildsViewModel.ResolveActiveHash("edited", Stored, editBase: "aaa"));
+        Assert.Equal("aaa", LuaVault.ResolveActiveHash("edited", Stored, editBase: "aaa"));
 
     /// <summary>No base to fall back on, no row matches, which is the honest answer. Must not throw.</summary>
     [Fact]
     public void LiveMatchingNothing_WithNoEditBase_LeavesNothingActive()
     {
-        string? resolved = BuildsViewModel.ResolveActiveHash("edited", Stored, editBase: null);
+        string? resolved = LuaVault.ResolveActiveHash("edited", Stored, editBase: null);
 
         Assert.Equal("edited", resolved);
         Assert.DoesNotContain(Stored, v => v.Hash == resolved);
@@ -41,14 +41,14 @@ public class BuildsActiveHashTests
     /// <summary>A base pointing at a variant that's since been deleted is stale, not a selection.</summary>
     [Fact]
     public void LiveMatchingNothing_WithAStaleEditBase_LeavesNothingActive() =>
-        Assert.Equal("edited", BuildsViewModel.ResolveActiveHash("edited", Stored, editBase: "gone"));
+        Assert.Equal("edited", LuaVault.ResolveActiveHash("edited", Stored, editBase: "gone"));
 
     [Fact]
     public void NoLiveFile_IsNull() =>
-        Assert.Null(BuildsViewModel.ResolveActiveHash(null, Stored, editBase: "aaa"));
+        Assert.Null(LuaVault.ResolveActiveHash(null, Stored, editBase: "aaa"));
 
     /// <summary>An edit base left over from a finished edit must not override an exact match.</summary>
     [Fact]
     public void AStaleEditBase_DoesNotOverrideAnExactLiveMatch() =>
-        Assert.Equal("bbb", BuildsViewModel.ResolveActiveHash("bbb", Stored, editBase: "aaa"));
+        Assert.Equal("bbb", LuaVault.ResolveActiveHash("bbb", Stored, editBase: "aaa"));
 }

@@ -608,4 +608,44 @@ Anuluj - kontynuuj pobieranie</value></data>
   <data name="Fixes_Revert_Conflict_Body" xml:space="preserve"><value>Plik {0} zmienił się od zastosowania tej poprawki, więc przywrócenie nadpisałoby te zmiany. Jeśli zastosowano na wierzchu inną poprawkę, cofnij najpierw ją. Dotyczy {1} plik(ów).</value></data>
   <data name="Fixes_Revert_Partial" xml:space="preserve"><value>Poprawka cofnięta częściowo</value></data>
   <data name="Fixes_Revert_Partial_Body" xml:space="preserve"><value>Nie udało się przywrócić {0} plików. Zamknij grę i spróbuj ponownie.</value></data>
+  <data name="Settings_AutoDownloadManifests" xml:space="preserve"><value>Automatyczne pobieranie plików manifestów</value></data>
+  <data name="Settings_AutoDownloadManifests_Hint" xml:space="preserve"><value>Automatycznie pobieraj brakujące manifesty składów za pomocą kodów ManifestDeX + CDN Steam. Wyłącz, aby przerywać zadanie, gdy manifestu nie ma na dysku.</value></data>
+  <data name="Cloud_Section_MetadataSync" xml:space="preserve"><value>Synchronizacja metadanych i statystyk Steam</value></data>
+  <data name="Cloud_MetadataSync_Hint" xml:space="preserve"><value>Konfiguruj odblokowania osiągnięć, śledzenie czasu gry i pobieranie schematu między urządzeniami.</value></data>
+  <data name="Cloud_AchievementsSync" xml:space="preserve"><value>Synchronizacja osiągnięć</value></data>
+  <data name="Cloud_AchievementsSync_Hint" xml:space="preserve"><value>Synchronizuj osiągnięcia między urządzeniami za pomocą dostawcy</value></data>
+  <data name="Cloud_PlaytimeSync" xml:space="preserve"><value>Synchronizacja czasu gry</value></data>
+  <data name="Cloud_PlaytimeSync_Hint" xml:space="preserve"><value>Synchronizuj czas gry między urządzeniami za pomocą dostawcy</value></data>
+  <data name="Cloud_LuaSync" xml:space="preserve"><value>Synchronizacja Lua</value></data>
+  <data name="Cloud_LuaSync_Hint" xml:space="preserve"><value>Synchronizuj metadane manifestów Lua między urządzeniami</value></data>
+  <data name="Cloud_SchemaFetch" xml:space="preserve"><value>Pobieranie schematu</value></data>
+  <data name="Cloud_SchemaFetch_Hint" xml:space="preserve"><value>Pobierz schemat UserGameStats Steam, gdy jest niedostępny</value></data>
+  <data name="Cloud_EnableRedirection" xml:space="preserve"><value>Włącz przekierowanie zapisów do chmury</value></data>
+  <data name="Cloud_EnableRedirection_Hint" xml:space="preserve"><value>Włącz automatyczne przekierowanie plików zapisu i synchronizację w tle</value></data>
+  <data name="Cloud_SyncEngine" xml:space="preserve"><value>Silnik synchronizacji:</value></data>
+  <data name="Cloud_SyncActive" xml:space="preserve"><value>Aktywny i gotowy</value></data>
+  <data name="Cloud_SyncPaused" xml:space="preserve"><value>Zainstalowany · Wstrzymany</value></data>
+  <data name="Cloud_InstalledLabel" xml:space="preserve"><value>Zainstalowano:</value></data>
+  <data name="Cloud_LatestLabel" xml:space="preserve"><value>Wydanie GitHub:</value></data>
+  <data name="Cloud_ReinstallEngine" xml:space="preserve"><value>Zainstaluj ponownie silnik synchronizacji</value></data>
+  <data name="Cloud_UninstallEngine" xml:space="preserve"><value>Odinstaluj silnik synchronizacji</value></data>
+  <data name="Cloud_OpenSteamFolder" xml:space="preserve"><value>Otwórz folder Steam</value></data>
+  <data name="Manage_DownloadManifests" xml:space="preserve"><value>Pobierz manifesty</value></data>
+  <data name="Manage_Toast_Manifests_Title" xml:space="preserve"><value>Manifesty</value></data>
+  <data name="Manage_Toast_Manifests_None" xml:space="preserve"><value>Nie znaleziono przypiętych manifestów w żadnym pliku lua.</value></data>
+  <data name="Manage_Toast_Manifests_Done" xml:space="preserve"><value>Pobrano: {0}, już obecne: {1}, nieudane: {2}.</value></data>
+  <data name="Add_FixAvailable" xml:space="preserve"><value>Dostępny fix online</value></data>
+  <data name="Add_CheckingFix" xml:space="preserve"><value>Sprawdzanie fixów…</value></data>
+  <data name="Fixes_Select_Game_Folder_Title" xml:space="preserve"><value>Wybierz folder instalacji {0}</value></data>
+  <data name="Fixes_Select_Game_Folder_WarnTitle" xml:space="preserve"><value>Nie znaleziono plików gry</value></data>
+  <data name="Fixes_Select_Game_Folder_WarnBody" xml:space="preserve"><value>Brak plików .exe w {0}. Wybierz folder zawierający plik .exe gry. Mimo to użyć tego folderu?</value></data>
+  <data name="Fixes_Toast_FolderCancelled" xml:space="preserve"><value>Nie wybrano folderu</value></data>
+  <data name="Fixes_Toast_FolderCancelled_Body" xml:space="preserve"><value>Wybierz folder gry, aby zastosować fix.</value></data>
+  <data name="Fixes_Applied" xml:space="preserve"><value>Zastosowane</value></data>
+  <data name="Fixes_Applied_Count" xml:space="preserve"><value>Naprawione gry: {0}. Otwórz grę, aby cofnąć.</value></data>
+  <data name="Fixes_Applied_Empty" xml:space="preserve"><value>Brak zastosowanych fixów — zastosuj fix, aby zobaczyć go tutaj.</value></data>
+  <data name="Fixes_Applied_Badge" xml:space="preserve"><value>FIX</value></data>
+  <data name="Fixes_AddGame" xml:space="preserve"><value>Dodaj grę</value></data>
+  <data name="Fixes_Revert_CleanupFailed" xml:space="preserve"><value>Nie ukończono cofania</value></data>
+  <data name="Fixes_Revert_CleanupFailed_Body" xml:space="preserve"><value>Pliki przywrócono, ale nie udało się usunąć rekordu cofania. Zamknij grę ORAZ Steam (lub uruchom Element jako administrator) i cofnij ponownie.</value></data>
 </root>

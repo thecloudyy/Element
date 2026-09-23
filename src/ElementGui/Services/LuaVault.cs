@@ -172,6 +172,72 @@ public class LuaVault
     }
 
     /// <summary>
+    /// Every manifest pin declared by any lua on this machine: vault variants,
+    /// live stplug-in files and loose build files. Active and commented pins
+    /// both count (a commented pin still names a real build worth caching).
+    /// Distinct by (depot, gid); first-seen key wins. Best effort per file.
+    /// </summary>
+    public IReadOnlyList<(long DepotId, string ManifestId, string? Key)> EnumerateAllManifestPins()
+    {
+        var seen = new HashSet<(long, string)>();
+        var pins = new List<(long, string, string?)>();
+
+        void Add(LuaContents? contents)
+        {
+            if (contents is null) return;
+            foreach (var e in contents.Entries)
+            {
+                if (!string.IsNullOrEmpty(e.ManifestId))
+                    AddOne(e.Id, e.ManifestId, e.Key);
+                if (!string.IsNullOrEmpty(e.CommentedManifestId))
+                    AddOne(e.Id, e.CommentedManifestId, e.Key);
+            }
+        }
+
+        void AddOne(long depot, string gid, string? key)
+        {
+            if (!ulong.TryParse(gid, out ulong g) || g == 0 || depot <= 0) return;
+            if (seen.Add((depot, gid))) pins.Add((depot, gid, key));
+        }
+
+        lock (_gate)
+        {
+            try
+            {
+                if (Directory.Exists(_root))
+                {
+                    foreach (string dir in Directory.EnumerateDirectories(_root))
+                    {
+                        if (!long.TryParse(Path.GetFileName(dir), out long appId) || appId <= 0) continue;
+                        foreach (string path in Directory.EnumerateFiles(dir, "*.lua"))
+                        {
+                            try { Add(LuaFileParser.Parse(path, appId)); }
+                            catch { }
+                        }
+                    }
+                }
+
+                string? plugIn = _stPlugInDir();
+                if (!string.IsNullOrEmpty(plugIn) && Directory.Exists(plugIn))
+                {
+                    foreach (string path in Directory.EnumerateFiles(plugIn, "*.lua"))
+                    {
+                        try
+                        {
+                            var appId = LuaInstaller.AppIdFromFileName(path);
+                            if (appId is null) continue;
+                            Add(LuaFileParser.Parse(path, appId.Value));
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch { }
+        }
+        return pins;
+    }
+
+    /// <summary>
     /// Loose &lt;appid&gt;_&lt;buildid&gt;.lua files sitting directly in stplug-in. Steam only ever reads
     /// &lt;appid&gt;.lua, so these are INERT where they are. Dropping one in the folder does nothing until
     /// it's applied. Surfacing them lets the Builds page offer builds the user already has on disk.
@@ -449,6 +515,21 @@ public class LuaVault
             return true;
         }
         catch { return false; }
+    }
+
+    /// <summary>
+    /// Which stored variant hash counts as live. Pure and static so it can be
+    /// tested without the eight services the old builds page needed.
+    /// </summary>
+    public static string? ResolveActiveHash(
+        string? liveHash, IReadOnlyList<LuaVariant> stored, string? editBase)
+    {
+        if (liveHash is null) return null;                              // nothing installed
+        if (stored.Any(v => v.Hash == liveHash)) return liveHash;       // ordinary case
+
+        // Diverged. Fall back to the live hash when there's no usable base, no row matches, which is
+        // the honest answer, and it must not throw. After a SyncDefaultFromLive this shouldn't arise.
+        return editBase is not null && stored.Any(v => v.Hash == editBase) ? editBase : liveHash;
     }
 
     /// <summary>Write text to Steam's live lua (the editor's Save). Does not touch the vault.</summary>

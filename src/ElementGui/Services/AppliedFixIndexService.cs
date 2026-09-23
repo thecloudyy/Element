@@ -26,7 +26,7 @@ namespace ElementGui.Services;
 /// strand backups with nothing pointing at them.
 /// </para>
 /// </remarks>
-public class AppliedFixIndexService(SteamLibraryService library, ILogger<AppliedFixIndexService> log)
+public class AppliedFixIndexService(SteamLibraryService library, SettingsService settings, ILogger<AppliedFixIndexService> log)
 {
     private static readonly string Dir =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ElementGui");
@@ -168,12 +168,14 @@ public class AppliedFixIndexService(SteamLibraryService library, ILogger<Applied
     private List<AppliedFixIndexEntry> Scan(CancellationToken ct)
     {
         var found = new List<AppliedFixIndexEntry>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var game in library.EnumerateInstalled())
+        foreach (var game in library.EnumerateInstalled().Concat(EnumerateManualGames()))
         {
             if (ct.IsCancellationRequested) break;
 
             string installDir = game.InstallDir;
+            if (!seen.Add(Path.GetFullPath(installDir).TrimEnd(Path.DirectorySeparatorChar))) continue;
             string fixDir = Path.Combine(installDir, Downloads.ManifestJobFactory.FixRecordDir);
             string[] records;
             try
@@ -201,5 +203,25 @@ public class AppliedFixIndexService(SteamLibraryService library, ILogger<Applied
         }
 
         return found;
+    }
+
+    /// <summary>Manually picked game folders (Fixes popup) that have no appmanifest.</summary>
+    private IEnumerable<SteamLibraryService.InstalledGame> EnumerateManualGames()
+    {
+        IReadOnlyDictionary<long, string> manual;
+        try { manual = settings.GetManualInstallDirs(); }
+        catch { yield break; }
+        foreach (var (appId, dir) in manual)
+        {
+            string fixDir;
+            try
+            {
+                if (!Directory.Exists(dir)) continue;
+                fixDir = Path.Combine(dir, Downloads.ManifestJobFactory.FixRecordDir);
+                if (!Directory.Exists(fixDir)) continue;
+            }
+            catch { continue; }
+            yield return new SteamLibraryService.InstalledGame(appId, appId.ToString(), dir);
+        }
     }
 }

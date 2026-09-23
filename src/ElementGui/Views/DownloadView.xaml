@@ -602,6 +602,60 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
+            <!-- Online fix (same download as the Fixes page; after Fetch, hidden once applied) -->
+            <Border
+                Margin="0,12,0,0"
+                Padding="12,9"
+                Background="#08FFFFFF"
+                BorderBrush="#12FFFFFF"
+                BorderThickness="1"
+                CornerRadius="8"
+                Visibility="{Binding ShowFixRow, Converter={StaticResource BoolToVis}}">
+                <StackPanel>
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Visibility="{Binding IsCheckingFix, Converter={StaticResource BoolToVis}}">
+                        <ui:ProgressRing Width="14" Height="14" IsIndeterminate="True" />
+                        <TextBlock
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center"
+                            FontSize="12.5"
+                            Foreground="#9ca3af"
+                            Text="{x:Static res:Strings.Add_CheckingFix}" />
+                    </StackPanel>
+                    <Grid Visibility="{Binding ShowFixDownload, Converter={StaticResource BoolToVis}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                            <ui:SymbolIcon
+                                FontSize="15"
+                                Foreground="#a78bfa"
+                                Symbol="Wrench24" />
+                            <TextBlock
+                                Margin="8,0,0,0"
+                                FontSize="13.5"
+                                FontWeight="Medium"
+                                Text="{x:Static res:Strings.Add_FixAvailable}" />
+                        </StackPanel>
+                        <ui:Button
+                            Grid.Column="1"
+                            Appearance="Primary"
+                            Command="{Binding DownloadFixCommand}"
+                            Content="{Binding FixButtonLabel}"
+                            Icon="{ui:SymbolIcon Wrench24}"
+                            IsEnabled="{Binding CanDownloadFix}" />
+                    </Grid>
+                    <ProgressBar
+                        Margin="0,8,0,0"
+                        IsIndeterminate="{Binding FixQueueItem.IsIndeterminate, FallbackValue=False}"
+                        Maximum="100"
+                        Visibility="{Binding FixQueueItem.ShowProgress, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}"
+                        Value="{Binding FixQueueItem.Percent, Mode=OneWay, FallbackValue=0}" />
+                </StackPanel>
+            </Border>
+
             <!-- DLC info -->
             <StackPanel Margin="0,12,0,0" Visibility="{Binding HasDlcInfo, Converter={StaticResource BoolToVis}}">
                 <!-- Stat tiles -->

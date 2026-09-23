@@ -50,6 +50,7 @@ public class CacheData
     public long SteamlessCheckedAtMs { get; set; }
     public string? SteamAutoCrackVersion { get; set; }
     public long SteamAutoCrackCheckedAtMs { get; set; }
+    public string? CloudRedirectVersion { get; set; }
 }
 
 /// <summary>
@@ -171,6 +172,13 @@ public class CacheService
     {
         get => _cache.DepotDownloaderCheckedAtMs;
         set { _cache.DepotDownloaderCheckedAtMs = value; Save(); }
+    }
+
+    /// <summary>Release tag of the installed CloudRedirect DLL, or null if never recorded.</summary>
+    public string? CloudRedirectVersion
+    {
+        get => _cache.CloudRedirectVersion;
+        set { _cache.CloudRedirectVersion = string.IsNullOrWhiteSpace(value) ? null : value; Save(); }
     }
 
     /// <summary>Release tag of the installed Steamless, or null if never recorded.</summary>

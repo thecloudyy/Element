@@ -663,4 +663,47 @@ Hayır - durdur ama dosyaları koru
   <data name="Fixes_Revert_Conflict_Body" xml:space="preserve"><value>Bu düzeltme uygulandıktan sonra {0} değişti; geri yüklemek bu değişikliklerin üzerine yazar. Üstüne başka bir düzeltme uyguladıysanız önce onu geri alın. {1} dosya etkilendi.</value></data>
   <data name="Fixes_Revert_Partial" xml:space="preserve"><value>Düzeltme kısmen geri alındı</value></data>
   <data name="Fixes_Revert_Partial_Body" xml:space="preserve"><value>{0} dosya geri yüklenemedi. Oyunu kapatıp tekrar deneyin.</value></data>
+  <data name="Settings_AutoDownloadManifests" xml:space="preserve"><value>Manifest dosyalarını otomatik indir</value></data>
+  <data name="Settings_AutoDownloadManifests_Hint" xml:space="preserve"><value>Eksik depo manifestlerini ManifestDeX kodları + Steam CDN ile otomatik al. Manifest diskte yoksa işi iptal etmek için kapat.</value></data>
+  <data name="Cloud_Section_MetadataSync" xml:space="preserve"><value>Steam Meta Verisi ve İstatistik Eşitlemesi</value></data>
+  <data name="Cloud_MetadataSync_Hint" xml:space="preserve"><value>Başarım açmalarını, oyun süresi takibini ve şema getirmeyi cihazlar arasında yapılandır.</value></data>
+  <data name="Cloud_AchievementsSync" xml:space="preserve"><value>Başarım Eşitleme</value></data>
+  <data name="Cloud_AchievementsSync_Hint" xml:space="preserve"><value>Başarımları sağlayıcı üzerinden cihazlar arasında eşitle</value></data>
+  <data name="Cloud_PlaytimeSync" xml:space="preserve"><value>Oyun Süresi Eşitleme</value></data>
+  <data name="Cloud_PlaytimeSync_Hint" xml:space="preserve"><value>Oyun süresini sağlayıcı üzerinden cihazlar arasında eşitle</value></data>
+  <data name="Cloud_LuaSync" xml:space="preserve"><value>Lua Eşitleme</value></data>
+  <data name="Cloud_LuaSync_Hint" xml:space="preserve"><value>Lua manifest meta verilerini cihazlar arasında eşitle</value></data>
+  <data name="Cloud_SchemaFetch" xml:space="preserve"><value>Şema getirme</value></data>
+  <data name="Cloud_SchemaFetch_Hint" xml:space="preserve"><value>Kullanılamıyorsa Steam UserGameStats şemasını getir</value></data>
+  <data name="Cloud_EnableRedirection" xml:space="preserve"><value>Bulut kayıt yönlendirmeyi etkinleştir</value></data>
+  <data name="Cloud_EnableRedirection_Hint" xml:space="preserve"><value>Otomatik kayıt dosyası yönlendirme ve arka plan bulut eşitlemesini etkinleştir</value></data>
+  <data name="Cloud_SyncEngine" xml:space="preserve"><value>Eşitleme Motoru:</value></data>
+  <data name="Cloud_SyncActive" xml:space="preserve"><value>Etkin ve Hazır</value></data>
+  <data name="Cloud_SyncPaused" xml:space="preserve"><value>Kurulu · Duraklatıldı</value></data>
+  <data name="Cloud_InstalledLabel" xml:space="preserve"><value>Kurulu:</value></data>
+  <data name="Cloud_LatestLabel" xml:space="preserve"><value>GitHub Sürümü:</value></data>
+  <data name="Cloud_ReinstallEngine" xml:space="preserve"><value>Eşitleme Motorunu Yeniden Kur</value></data>
+  <data name="Cloud_UninstallEngine" xml:space="preserve"><value>Eşitleme Motorunu Kaldır</value></data>
+  <data name="Cloud_OpenSteamFolder" xml:space="preserve"><value>Steam Klasörünü Aç</value></data>
+  <data name="Manage_DownloadManifests" xml:space="preserve"><value>Manifestleri İndir</value></data>
+  <data name="Manage_Toast_Manifests_Title" xml:space="preserve"><value>Manifestler</value></data>
+  <data name="Manage_Toast_Manifests_None" xml:space="preserve"><value>Hiçbir lua dosyasında sabitlenmiş manifest bulunamadı.</value></data>
+  <data name="Manage_Toast_Manifests_Done" xml:space="preserve"><value>{0} indirildi, {1} zaten mevcut, {2} başarısız.</value></data>
+  <data name="Plugin_Row_Core" xml:space="preserve"><value>Çekirdek</value></data>
+  <data name="Plugin_Row_Dwmapi" xml:space="preserve"><value>dwmapi.dll</value></data>
+  <data name="Plugin_Row_Xinput" xml:space="preserve"><value>xinput1_4.dll</value></data>
+  <data name="Add_FixAvailable" xml:space="preserve"><value>Çevrimiçi düzeltme mevcut</value></data>
+  <data name="Add_CheckingFix" xml:space="preserve"><value>Düzeltmeler denetleniyor…</value></data>
+  <data name="Fixes_Select_Game_Folder_Title" xml:space="preserve"><value>{0} kurulum klasörünü seç</value></data>
+  <data name="Fixes_Select_Game_Folder_WarnTitle" xml:space="preserve"><value>Oyun dosyası bulunamadı</value></data>
+  <data name="Fixes_Select_Game_Folder_WarnBody" xml:space="preserve"><value>{0} içinde .exe dosyası yok. Oyunun .exe dosyasını içeren klasörü seç. Yine de bu klasör kullanılsın mı?</value></data>
+  <data name="Fixes_Toast_FolderCancelled" xml:space="preserve"><value>Klasör seçilmedi</value></data>
+  <data name="Fixes_Toast_FolderCancelled_Body" xml:space="preserve"><value>Düzeltmeyi uygulamak için oyun klasörünü seç.</value></data>
+  <data name="Fixes_Applied" xml:space="preserve"><value>Uygulananlar</value></data>
+  <data name="Fixes_Applied_Count" xml:space="preserve"><value>{0} oyun düzeltildi. Geri almak için birini aç.</value></data>
+  <data name="Fixes_Applied_Empty" xml:space="preserve"><value>Henüz uygulanan düzeltme yok — burada görmek için bir düzeltme uygula.</value></data>
+  <data name="Fixes_Applied_Badge" xml:space="preserve"><value>DÜZELTİLDİ</value></data>
+  <data name="Fixes_AddGame" xml:space="preserve"><value>Oyun ekle</value></data>
+  <data name="Fixes_Revert_CleanupFailed" xml:space="preserve"><value>Geri alma tamamlanamadı</value></data>
+  <data name="Fixes_Revert_CleanupFailed_Body" xml:space="preserve"><value>Dosyalar geri yüklendi ancak geri alma kaydı silinemedi. Oyunu VE Steam'i kapat (veya Element'i yönetici olarak çalıştır) ve yeniden dene.</value></data>
 </root>

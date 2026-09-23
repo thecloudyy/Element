@@ -24,24 +24,27 @@ public class ManifestJobFactory(
     DepotDownloaderService depotTool,
     SteamDepotInfo depotInfo,
     SteamAutoCrackService sac,
-    AppliedFixIndexService fixIndex)
+    AppliedFixIndexService fixIndex,
+    ManifestDownloadService manifestDl,
+    SettingsService settings,
+    OnlineFixesService onlineFixes)
 {
     // ── Job builders ─────────────────────────────────────────────────
 
-    /// <summary>A base-game manifest from a named source.
-    /// Fetch is free-only (Hubcap /status + /contents, no quota). Quota is spent only here on
-    /// Download: Hubcap fetches the lua (/lua) plus the manifest zip (/manifest), Ryuu fetches
-    /// its manifest zip. The lua lands in the folder location alongside the manifests.
+    /// <summary>A base-game lua from a named source, plus its manifests.
+    /// Sources are lua-only: the lua downloads from Hubcap (/lua) or Ryuu
+    /// (file_type=lua), then every manifest the lua pins is fetched via
+    /// ManifestDeX codes + Steam CDN into depotcache. Manifest zips are
+    /// never downloaded from anywhere.
     /// </summary>
     public DownloadJob CreateManifestJob(
-        long appId, string? gameName, string sourceName, bool needsKey,
+        long appId, string? gameName, string sourceName,
         Func<DownloadedFile, DownloadItem, CancellationToken, Task<bool>>? confirm = null,
         Action<DownloadItem, JobResult?>? onFinished = null,
         Action? onReveal = null)
     {
         string title = gameName ?? appId.ToString();
         bool isHubcap = string.Equals(sourceName, "Hubcap", StringComparison.OrdinalIgnoreCase);
-        string? hubcapLuaPath = null;
         return new DownloadJob(
             DownloadKind.Manifest,
             $"manifest:{appId}:{sourceName.ToLowerInvariant()}",
@@ -51,15 +54,16 @@ public class ManifestJobFactory(
             covers.GetLocalPath(appId),
             async (_, progress, ct) =>
             {
-                if (!isHubcap)
-                    return await api.DownloadManifestAsync(appId.ToString(), null, progress, ct);
-                // Quota is spent here, not on Fetch: lua + manifest zip together.
-                var lua = await hubcap.DownloadLuaTempAsync(appId.ToString(), ct);
-                if (lua is not null)
-                    hubcapLuaPath = lua.FilePath;
-                return await hubcap.DownloadManifestAsync(appId.ToString(), progress, ct);
+                if (isHubcap)
+                {
+                    var lua = await hubcap.DownloadLuaTempAsync(appId.ToString(), ct);
+                    if (lua is null)
+                        throw new DownloadAbortedException(Resources.Strings.Add_Err_Download);
+                    return lua;
+                }
+                return await api.DownloadAsync(appId.ToString(), "lua", null, progress, ct);
             },
-            (file, _, _) => Task.FromResult(InstallManifestWithTemp(file, appId, title, hubcapLuaPath)),
+            (file, item, ct) => InstallLuaPlusManifestsAsync(file, appId, title, item, ct),
             confirm,
             onFinished,
             onReveal);
@@ -87,100 +91,33 @@ public class ManifestJobFactory(
     }
 
     /// <summary>
-    /// A Denuvo fix slot. "manifest" installs force-locked into Steam (fixes must stay version-pinned);
-    /// "fix" extracts the zip into the game's install folder. Neither restarts Steam.
+    /// An online fix from thecloudyy/OnlineFixes. Downloads the zip from GitHub and extracts it
+    /// into the game's install folder (auto-detected, or user-picked via popup). No lua.tools APIs.
     /// </summary>
-    public DownloadJob CreateDenuvoJob(
-        string fixId, string slot, string fallbackName,
-        long appId, string gameName, string fixTitle,
+    public DownloadJob CreateOnlineFixJob(
+        OnlineFixEntry fix,
+        long appId, string gameName,
         Action<DownloadItem, JobResult?>? onFinished = null)
     {
-        bool isManifestSlot = slot == "manifest";
-        bool hubcapFallback = false;
         return new DownloadJob(
-            isManifestSlot ? DownloadKind.DenuvoManifest : DownloadKind.DenuvoFix,
-            $"denuvo:{fixId}:{slot}",
+            DownloadKind.DenuvoFix,
+            $"onlinefix:{appId}:{fix.FileName}",
             appId,
             gameName,
-            fixTitle,
+            fix.FileName,
             covers.GetLocalPath(appId),
             async (_, progress, ct) =>
             {
-                // Verify the game is on disk BEFORE the request. /api/denuvo/download spends a slot of
-                // the server-side daily limit and the fix zip is game binaries, so discovering "not
-                // installed" in the install phase (where ApplyDenuvoFix still checks, as a backstop)
-                // costs a slot and a full download for nothing. The Fixes page disables the button for
-                // uninstalled games, but a queued fix can outlive that check if the user uninstalls
-                // while it waits its turn.
-                if (!isManifestSlot && library.GetInstallDir(appId) is null)
+                // The install dir is resolved (with popup) before queueing, but a queued fix can
+                // outlive that if the user uninstalls/moves the game while it waits.
+                if (library.GetInstallDir(appId) is null)
                     throw new DownloadAbortedException(
                         string.Format(Resources.Strings.Fixes_Toast_GameNotFound_Body, gameName));
-                try
-                {
-                    return await api.DownloadDenuvoAsync(fixId, slot, fallbackName, progress, ct);
-                }
-                catch (ApiException ex) when (ex.Status == System.Net.HttpStatusCode.Unauthorized && isManifestSlot)
-                {
-                    // lua.tools needs a login the app doesn't have. Fall back to a Hubcap
-                    // bundle (current lua + manifests) so the manifest slot still works.
-                    hubcapFallback = true;
-                    return await DownloadHubcapFixBundleAsync(appId, progress, ct);
-                }
+                return await onlineFixes.DownloadFixAsync(fix, progress, ct);
             },
-            (file, _, _) =>
-            {
-                var result = isManifestSlot
-                    ? InstallDenuvoManifest(file, appId, gameName)
-                    : ApplyDenuvoFix(file, appId, fixId, gameName);
-                if (hubcapFallback && result.Ok && result.Message is not null)
-                    result = result with { Message = result.Message + " (via Hubcap)" };
-                return Task.FromResult(result);
-            },
+            (file, _, _) => Task.FromResult(ApplyDenuvoFix(file, appId, fix.FileName, gameName)),
             ConfirmAsync: null,
             OnFinished: onFinished);
-    }
-
-    /// <summary>
-    /// Hubcap fallback for a fix's manifest slot: bundle Hubcap's current lua + manifest zip
-    /// into one staged zip so the force-locked fix install path just works. Quota is spent
-    /// here (lua + manifest), never on browse.
-    /// </summary>
-    private async Task<DownloadedFile> DownloadHubcapFixBundleAsync(
-        long appId, IProgress<DownloadProgress>? progress, CancellationToken ct)
-    {
-        var manifest = await hubcap.DownloadManifestAsync(appId.ToString(), progress, ct);
-        string? luaPath = null;
-        try { luaPath = (await hubcap.DownloadLuaTempAsync(appId.ToString(), ct))?.FilePath; }
-        catch { /* manifest-only bundle */ }
-
-        try
-        {
-            Directory.CreateDirectory(HttpFileDownloader.StagingFolder);
-            string combinedPath = Path.Combine(HttpFileDownloader.StagingFolder, $"{appId}_hubcap_fix.zip");
-            using (var outArchive = ZipFile.Open(combinedPath, ZipArchiveMode.Create))
-            {
-                using (var inArchive = ZipFile.OpenRead(manifest.FilePath))
-                    foreach (var entry in inArchive.Entries)
-                    {
-                        if (string.IsNullOrEmpty(entry.Name)) continue;
-                        using var src = entry.Open();
-                        using var dst = outArchive.CreateEntry(entry.FullName).Open();
-                        await src.CopyToAsync(dst, ct);
-                    }
-                if (luaPath is not null && File.Exists(luaPath))
-                {
-                    using var dst = outArchive.CreateEntry($"{appId}.lua").Open();
-                    await using var src = File.OpenRead(luaPath);
-                    await src.CopyToAsync(dst, ct);
-                }
-            }
-            return new DownloadedFile(combinedPath, $"{appId}_hubcap_fix.zip");
-        }
-        finally
-        {
-            try { File.Delete(manifest.FilePath); } catch { /* best effort */ }
-            if (luaPath is not null) try { File.Delete(luaPath); } catch { /* best effort */ }
-        }
     }
 
     /// <summary>
@@ -318,9 +255,10 @@ public class ManifestJobFactory(
 
             // A shared redistributable carries no gid or size in the game's own app-info (it's a
             // three-field stub pointing at the owning app), so both are resolved here rather than at
-            // pick time. Cached per app by SteamDepotInfo, and the owner is app 228980 for nearly
-            // every game, so this costs one lookup per session across all downloads.
-            var sized = await ResolveSharedAsync(selections[i], ct);
+            // pick time. The same goes for an ordinary depot that arrived gid-less: it resolves to
+            // the game's latest public manifest. Cached per app by SteamDepotInfo, and the owner is
+            // app 228980 for nearly every game, so this costs one lookup per session across all downloads.
+            var sized = await ResolveSharedAsync(appId, selections[i], ct);
 
             // Resolve the manifest, fetching it into depotcache if Steam doesn't already have it. This is
             // what lets a depot be downloaded at all when the game was added with "Auto Update Apps" on,
@@ -331,14 +269,14 @@ public class ManifestJobFactory(
             // row mid-pre-flight as though depots were already downloading.
             if (!item.CompletedDepots.Contains(sized.DepotId))
             {
-                sized = sized with { ManifestPath = await EnsureManifestAsync(item, sized, prep, ct) };
-
                 // Without a key the tool cannot decrypt a single chunk, and a depot that fails aborts the
                 // whole job below — so refuse here, before anything is written, naming the depot instead
                 // of surfacing the downloader's own "No valid depot key" much later.
                 if (!keys.TryGetValue(sized.DepotId, out string? hex) || !TryParseKey(hex, out byte[] key))
                     throw new DownloadAbortedException(
                         string.Format(Resources.Strings.Depot_Err_NoKeyFor, sized.DepotId));
+
+                sized = sized with { ManifestPath = await EnsureManifestAsync(item, sized, key, prep, ct) };
 
                 // A key that exists but is WRONG can only be caught when the manifest still has its
                 // filenames encrypted, which is the small minority — see ManifestFile.KeyLooksValid.
@@ -468,13 +406,17 @@ public class ManifestJobFactory(
     }
 
     /// <summary>
-    /// Fill in a shared depot's manifest id and size from the app that actually owns its content.
-    /// Returns the selection unchanged for an ordinary depot (one that already declares its own gid).
+    /// Fill in a depot's manifest id and size with the latest public build.
+    /// Shared depots resolve from their owning app; an ordinary depot that
+    /// arrived without a gid resolves from the game itself. Returns the
+    /// selection unchanged when it already declares its own gid. Throws when
+    /// neither source lists one.
     /// </summary>
-    private async Task<DepotSelection> ResolveSharedAsync(DepotSelection sel, CancellationToken ct)
+    private async Task<DepotSelection> ResolveSharedAsync(long appId, DepotSelection sel, CancellationToken ct)
     {
-        if (sel.ManifestId is not null || sel.FromAppId is not { } owner) return sel;
+        if (sel.ManifestId is not null) return sel;
 
+        long owner = sel.FromAppId ?? appId;
         var info = await depotInfo.GetAsync(owner, ct);
         if (info?.Depots.FirstOrDefault(d => d.Id == sel.DepotId) is not { PublicManifestId: not null } owned)
             throw new DownloadAbortedException(Resources.Strings.Depot_Err_NoManifest);
@@ -488,7 +430,7 @@ public class ManifestJobFactory(
     /// depotcache (button installs, pinned installs, or Steam's own copies).
     /// </summary>
     private async Task<string> EnsureManifestAsync(
-        DownloadItem item, DepotSelection sel, string step, CancellationToken ct)
+        DownloadItem item, DepotSelection sel, byte[] depotKey, string step, CancellationToken ct)
     {
         // Already on disk (a previous run, a pinned install, or Steam's own copy): no request at all.
         // ResolveManifestPath only accepts a file that actually parses as this depot's manifest.
@@ -499,6 +441,17 @@ public class ManifestJobFactory(
         depotTool.DiscardCachedManifest(sel.DepotId, sel.ManifestId!);
 
         OnUi(() => item.Detail = $"{step} · {Resources.Strings.Downloads_Depot_FetchingManifest}");
+
+        // Auto Download Manifest Files: ManifestDeX request code + Steam CDN,
+        // straight into depotcache. No Steam login needed.
+        if (settings.AutoDownloadManifests)
+        {
+            var path = await manifestDl.EnsureManifestFileAsync(
+                sel.DepotId, sel.ManifestId!, depotKey,
+                status => OnUi(() => item.Detail = $"{step} · {status}"), ct);
+            if (path is not null)
+                return path;
+        }
 
         throw new DownloadAbortedException("Depot manifest downloads are no longer supported via API");
     }
@@ -545,85 +498,95 @@ public class ManifestJobFactory(
     }
 
     /// <summary>
-    /// Install with a sidecar lua: move the lua to the folder location first
-    /// (so the game shows as available even if the manifest zip carries no lua), then
-    /// install the manifests from the main file. Temp file is deleted after use.
+    /// Install a downloaded lua, then fetch every manifest it pins
+    /// (ManifestDeX codes + Steam CDN) into depotcache. Temp file is deleted after use.
     /// </summary>
-    private JobResult InstallManifestWithTemp(DownloadedFile file, long appId, string gameName, string? sidecarLuaPath)
+    private async Task<JobResult> InstallLuaPlusManifestsAsync(
+        DownloadedFile file, long appId, string gameName,
+        DownloadItem item, CancellationToken ct)
     {
-        bool tempInstalled = false;
-        string? tempError = null;
         try
         {
-            if (sidecarLuaPath is not null && File.Exists(sidecarLuaPath))
+            // Pins must come from the downloaded bytes, not the installed copy:
+            // InstallLua may comment pins out (Auto Update Apps), and after that
+            // the gids would be unreadable as *active* pins.
+            var pins = new List<(long DepotId, string ManifestId, string? Key)>();
+            try
             {
+                var contents = LuaFileParser.Parse(file.FilePath, appId);
+                if (contents is not null)
+                {
+                    foreach (var e in contents.Entries)
+                    {
+                        if (!string.IsNullOrEmpty(e.ManifestId))
+                            pins.Add((e.Id, e.ManifestId, e.Key));
+                    }
+                    pins = pins.Distinct().ToList();
+                }
+            }
+            catch { /* unparseable lua: install it, skip manifests */ }
+
+            var luaRes = installer.InstallLua(file.FilePath, appId);
+            if (luaRes.Error is not null || luaRes.AnyFailed || !luaRes.LuaInstalled)
+            {
+                return new JobResult(false, luaRes.Error
+                    ?? string.Format(Resources.Strings.Add_Status_InstallFailed, 1));
+            }
+
+            int fetched = 0;
+            if (pins.Count > 0)
+            {
+                int done = 0;
+                var gate = new SemaphoreSlim(3);
                 try
                 {
-                    var luaRes = installer.InstallLua(sidecarLuaPath, appId);
-                    tempInstalled = luaRes.Error is null && !luaRes.AnyFailed && luaRes.LuaInstalled;
-                    if (!tempInstalled && luaRes.Error is not null)
-                        tempError = luaRes.Error;
+                    var tasks = pins.Select(async pin =>
+                    {
+                        await gate.WaitAsync(ct);
+                        try
+                        {
+                            byte[]? key = null;
+                            try
+                            {
+                                if (!string.IsNullOrEmpty(pin.Key) && pin.Key.Length == 64)
+                                    key = Convert.FromHexString(pin.Key);
+                            }
+                            catch { key = null; }
+                            if (await manifestDl.EnsureManifestFileAsync(pin.DepotId, pin.ManifestId, key, null, ct) is not null)
+                                Interlocked.Increment(ref fetched);
+                        }
+                        catch { }
+                        finally
+                        {
+                            gate.Release();
+                            int n = Interlocked.Increment(ref done);
+                            OnUi(() => item.Detail = $"Fetching manifests {n}/{pins.Count}");
+                        }
+                    });
+                    await Task.WhenAll(tasks);
                 }
-                catch (Exception ex) { tempError = ex.Message; }
                 finally
                 {
-                    try { File.Delete(sidecarLuaPath); } catch { /* best effort */ }
+                    gate.Dispose();
                 }
             }
 
-            var result = InstallManifest(file, appId, gameName);
-
-            // If the zip had no lua but our temp lua installed, still report success with manifests.
-            if (!result.Ok && tempInstalled)
-                return new JobResult(true, string.Format(Resources.Strings.Add_Status_AddedFetch, gameName), installer.ReadInstalledLua(appId));
-            if (result.Ok && tempInstalled && result.Message is not null)
-                return result;
-            if (!result.Ok && tempError is not null)
-                return new JobResult(false, tempError);
-            return result;
+            string message = fetched > 0
+                ? string.Format(Resources.Strings.Add_Status_AddedManifests, gameName, fetched)
+                : string.Format(Resources.Strings.Add_Status_AddedFetch, gameName);
+            return new JobResult(true, message, installer.ReadInstalledLua(appId));
         }
         catch (Exception ex)
         {
             return new JobResult(false, ex.Message);
         }
-    }
-
-    /// <summary>
-    /// Denuvo manifest slot: force-locked install (version-pinned so an auto-update can't break the fix).
-    /// </summary>
-    /// <remarks>
-    /// This used to call <c>SteamService.RestartSteam()</c> unconditionally and without asking, which
-    /// killed Steam and every running game on each fix install. OpenSteamTools/BetterSteamTools watch
-    /// the lua directories listed in <c>opensteamtool.toml</c>'s <c>[lua] paths</c> — which includes the
-    /// <c>config/stplug-in</c> we just wrote to — so the write itself applies the change live.
-    /// </remarks>
-    private JobResult InstallDenuvoManifest(DownloadedFile file, long appId, string gameName)
-    {
-        try
-        {
-            bool isZip = file.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
-            var result = isZip
-                ? installer.InstallZip(file.FilePath, appId, forceLocked: true)
-                : installer.InstallLuaFile(file.FilePath, appId, forceLocked: true);
-
-            if (result.AnyFailed)
-            {
-                string err = result.Error ?? Resources.Strings.Fixes_Toast_InstallFailed_Body;
-                toast.Show(Resources.Strings.Fixes_Toast_InstallFailed, err, error: true);
-                return new JobResult(false, err);
-            }
-
-            string message = string.Format(Resources.Strings.Fixes_Toast_FixInstalled_Body, gameName);
-            toast.Show(Resources.Strings.Fixes_Toast_FixInstalled, message);
-            return new JobResult(true, message, installer.ReadInstalledLua(appId)); // see InstallManifest
-        }
         finally
         {
-            DeleteStaged(file.FilePath);
+            DeleteStaged(file.FilePath); // consumed by the install
         }
     }
 
-    /// <summary>Denuvo fix slot: extract into the game folder. Only possible if the game is installed.
+    /// <summary>Online fix slot: extract into the game folder. Only possible if the game is installed.
     /// Existing files are backed up as .bak inside .element-fix/ so the fix can be reverted.</summary>
     /// <remarks>
     /// Runs in four phases, because the revert record is the ONLY thing that makes a fix undoable and
@@ -714,6 +677,9 @@ public class ManifestJobFactory(
 
             // ── Phase 3: apply, recording what really happened rather than what was planned. ───────
             var applied = new List<DenuvoFixRecordEntry>(plan.Count);
+            string? firstError = null;
+            string? firstFailedFile = null;
+            bool accessDenied = false;
 
             foreach (var (relPath, dest, bakRel, entry) in plan)
             {
@@ -743,6 +709,7 @@ public class ManifestJobFactory(
                     }
 
                     Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                    ClearReadOnly(dest); // ExtractToFile(overwrite:true) throws on read-only targets
                     entry.ExtractToFile(dest, overwrite: true);
 
                     // Hash what we just wrote. This is what a later revert checks the file against to
@@ -751,7 +718,13 @@ public class ManifestJobFactory(
                     recordEntry.HashAfter = FileHash.Sha256(dest);
                     applied.Add(recordEntry);
                 }
-                catch { failed++; } // entry stays OUT of `applied`, so the settled record won't claim it
+                catch (Exception ex)
+                {
+                    failed++;
+                    firstError ??= ex.Message;
+                    firstFailedFile ??= relPath;
+                    if (ex is UnauthorizedAccessException) accessDenied = true;
+                } // entry stays OUT of `applied`, so the settled record won't claim it
             }
 
             // ── Phase 4: settle. Replace the promise with the facts. ───────────────────────────────
@@ -766,7 +739,20 @@ public class ManifestJobFactory(
 
             if (failed > 0)
             {
-                string err = string.Format(Resources.Strings.Fixes_Toast_PartiallyApplied_Body, failed);
+                string baseErr = string.Format(Resources.Strings.Fixes_Toast_PartiallyApplied_Body, failed);
+                // Surface the real cause: "close the game" is wrong when it's actually
+                // access-denied (Program Files without admin) or a read-only/locked file.
+                // ALL files failing at once is almost never a running game — it's permissions
+                // or a wrong folder.
+                string hint = accessDenied
+                    ? " Access denied — run Element as administrator, or move the game out of Program Files."
+                    : failed == plan.Count && plan.Count > 0
+                        ? " Nothing wrote at all — check the folder is the actual game folder (with the game's .exe) and Element can write there."
+                        : " Close the game AND Steam and try again.";
+                string detail = firstError is not null
+                    ? $" [{firstFailedFile}: {firstError}]"
+                    : "";
+                string err = baseErr + hint + detail;
                 toast.Show(Resources.Strings.Fixes_Toast_PartiallyApplied, err, error: true);
                 return new JobResult(false, err);
             }
@@ -808,6 +794,13 @@ public class ManifestJobFactory(
     /// <summary>Resolve the revert-record path for a given fix inside a game's install folder.</summary>
     internal static string GetFixRecordPath(string installDir, string fixId) =>
         Path.Combine(installDir, FixRecordDir, $"{SafeFixKey(fixId)}.json");
+
+    /// <summary>True when a revert record exists (fix applied, Revert button should show).</summary>
+    public bool IsFixApplied(long appId, string fixId)
+    {
+        string? dir = library.GetInstallDir(appId);
+        return dir is not null && File.Exists(GetFixRecordPath(dir, fixId));
+    }
 
     /// <summary>
     /// Resolve a relative path against the game folder, or null when it would escape it.
@@ -923,6 +916,7 @@ public class ManifestJobFactory(
                         // after a partial failure impossible to tell apart from a lost backup: every
                         // already-restored entry would come back as a missing .bak and fail forever.
                         // Leaving them means a retry just re-copies, which is idempotent.
+                        ClearReadOnly(dest); // game files are often read-only; overwrite throws otherwise
                         File.Copy(bakAbs, dest, overwrite: true);
                         restored++;
                     }
@@ -938,6 +932,7 @@ public class ManifestJobFactory(
                                 conflictFile ??= entry.RelativePath;
                                 continue;
                             }
+                            ClearReadOnly(dest);
                             File.Delete(dest);
                             deleted++;
                         }
@@ -971,8 +966,34 @@ public class ManifestJobFactory(
             // Fully reverted, so the backups have served their purpose and the record is what makes the
             // Revert button appear — both go, and the fix reads as un-applied again.
             string backupDir = Path.Combine(installDir, FixRecordDir, SafeFixKey(fixId));
-            try { if (Directory.Exists(backupDir)) Directory.Delete(backupDir, recursive: true); } catch { }
-            try { if (File.Exists(recordPath)) File.Delete(recordPath); } catch { }
+            try
+            {
+                if (Directory.Exists(backupDir))
+                {
+                    ClearAttributesRecursive(backupDir); // .bak files can be read-only too
+                    Directory.Delete(backupDir, recursive: true);
+                }
+            }
+            catch { }
+            try
+            {
+                if (File.Exists(recordPath))
+                {
+                    ClearReadOnly(recordPath);
+                    File.Delete(recordPath);
+                }
+            }
+            catch { }
+
+            // The record is what makes the fix read as applied. If it survived (locked file,
+            // permissions), reporting success would desync the UI: the game would leave the
+            // Applied filter now and reappear on the next refresh. Fail honestly instead.
+            if (File.Exists(recordPath))
+            {
+                string cleanupErr = Resources.Strings.Fixes_Revert_CleanupFailed_Body;
+                toast.Show(Resources.Strings.Fixes_Revert_CleanupFailed, cleanupErr, error: true);
+                return new JobResult(false, cleanupErr);
+            }
 
             // Drop it from the index last, so the index is never emptier than the truth. If this fails the
             // stale entry is pruned on the next read anyway, since its record file is now gone.
@@ -992,6 +1013,28 @@ public class ManifestJobFactory(
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
+
+    /// <summary>Clear the read-only flag so an overwrite/delete doesn't throw. Best effort.</summary>
+    private static void ClearReadOnly(string path)
+    {
+        try
+        {
+            if (File.Exists(path) && (File.GetAttributes(path) & FileAttributes.ReadOnly) != 0)
+                File.SetAttributes(path, FileAttributes.Normal);
+        }
+        catch { /* the write below surfaces the real error */ }
+    }
+
+    /// <summary>Clear read-only on every file under a folder so a recursive delete can't trip on one.</summary>
+    private static void ClearAttributesRecursive(string dir)
+    {
+        try
+        {
+            foreach (string f in Directory.GetFiles(dir, "*", SearchOption.AllDirectories))
+                ClearReadOnly(f);
+        }
+        catch { /* best effort */ }
+    }
 
     /// <summary>
     /// True if the file begins with the ZIP local-file-header magic (PK\x03\x04). A bare .lua (or any

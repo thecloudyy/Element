@@ -59,10 +59,26 @@
     <PackageReference Include="Markdig.Wpf" Version="0.5.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.9" />
+    <PackageReference Include="SteamKit2" Version="3.0.2" />
     <PackageReference Include="Velopack" Version="1.2.0" />
     <PackageReference Include="VirtualizingWrapPanel" Version="2.5.1" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
+
+  <!-- Local-only API keys, baked in from environment variables at compile time.
+       Set once per machine (PowerShell):
+         [Environment]::SetEnvironmentVariable('ELEMENT_HUBCAP_KEY', '<smm_…>', 'User')
+         [Environment]::SetEnvironmentVariable('ELEMENT_RYUU_KEY', '<key>', 'User')
+       The generated file lands in obj/ (gitignored) so keys never enter the repo.
+       Unset vars produce empty strings and the app falls back to the user's own
+       Settings keys. Key values must not contain semicolons. -->
+  <Target Name="GenerateBuildSecrets" BeforeTargets="BeforeCompile">
+    <WriteLinesToFile File="$(IntermediateOutputPath)BuildSecrets.g.cs" Overwrite="true" WriteOnlyWhenDifferent="true"
+      Lines="namespace ElementGui%3B;internal static class BuildSecrets;{;    internal const string HubcapKey = &quot;$(ELEMENT_HUBCAP_KEY)&quot;%3B;    internal const string RyuuKey = &quot;$(ELEMENT_RYUU_KEY)&quot;%3B;}" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)BuildSecrets.g.cs" />
+    </ItemGroup>
+  </Target>
 
   <!-- Build Element (C++ CMake) and copy DLLs to output -->
   <Target Name="BuildElement" AfterTargets="Build">

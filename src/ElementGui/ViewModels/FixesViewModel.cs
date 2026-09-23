@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.IO;
-using System.IO.Compression;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ElementGui.Models;
@@ -9,19 +8,26 @@ using ElementGui.Services.Downloads;
 
 namespace ElementGui.ViewModels;
 
-/// <summary>A game card in the Fixes grid.</summary>
-public partial class FixGameCardVm(DenuvoGameListing g) : ObservableObject
+/// <summary>A game card in the Fixes grid (from thecloudyy/OnlineFixes).</summary>
+public partial class FixGameCardVm(OnlineFixGame g) : ObservableObject
 {
-    public string AppId { get; } = g.AppId;
+    public string AppId { get; } = g.AppId.ToString();
+    public long AppIdLong { get; } = g.AppId;
     public string Name { get; } = g.Name;
     public string? HeaderImage { get; } = g.HeaderImage;
-    public int FixCount { get; } = g.FixCount;
-    public IReadOnlyList<string> TagIds { get; } = g.Tags.Select(t => t.Id).ToList();
+    public int FixCount { get; } = g.Fixes.Count;
+    public IReadOnlyList<string> TagIds { get; } = [];
     public string FixCountLabel => string.Format(Resources.Strings.Fixes_Count, FixCount);
+
+    /// <summary>Only show the "x fixes" label when there is more than one fix to count.</summary>
+    public bool ShowFixCount => FixCount > 1;
 
     /// <summary>Local cached cover path (set after CoverCache resolves it); bound via ImagePathToSource.</summary>
     [ObservableProperty] private string? _cover;
     private int _resolving;
+
+    /// <summary>True when at least one fix for this game has a revert record on disk.</summary>
+    [ObservableProperty] private bool _hasAppliedFix;
 
     public bool Matches(string q) =>
         Name.Contains(q, StringComparison.OrdinalIgnoreCase) || AppId.Contains(q);
@@ -42,75 +48,74 @@ public partial class FixGameCardVm(DenuvoGameListing g) : ObservableObject
 }
 
 /// <summary>A tag filter pill; IsSelected drives its active highlight.</summary>
-public partial class TagPillVm(DenuvoTag t) : ObservableObject
+public partial class TagPillVm : ObservableObject
 {
-    public string Id { get; } = t.Id;
-    public string Name { get; } = t.Name;
+    public TagPillVm(string id, string name)
+    {
+        Id = id;
+        Name = name;
+    }
+
+    public string Id { get; } = "";
+    public string Name { get; } = "";
     [ObservableProperty] private bool _isSelected;
 }
 
-/// <summary>One fix (release) in the per-game flyout.</summary>
-public partial class FixItemVm(DenuvoFix f) : ObservableObject
+/// <summary>One fix zip in the per-game flyout (from OnlineFixes repo, fix slot only).</summary>
+public partial class FixItemVm(OnlineFixEntry e) : ObservableObject
 {
-    public string Id { get; } = f.Id;
-    public string Title { get; } = f.Title;
-    public string? Description { get; } = f.Description;
-    public IReadOnlyList<DenuvoTag> Tags { get; } = f.Tags;
-    public bool HasManifest { get; } = f.HasManifest;
-    public bool HasFix { get; } = f.HasFix;
-    public string? ManifestFilename { get; } = f.ManifestFilename;
-    public string? FixFilename { get; } = f.FixFilename;
-    public string DateLabel { get; } = FormatDate(f.CreatedAt);
+    public OnlineFixEntry Entry { get; } = e;
+    public string Id { get; } = e.FileName;
+    public string Title { get; } = e.FileName;
+    public string? Description { get; }
+    public IReadOnlyList<string> Tags { get; } = [];
+    public bool HasManifest { get; }
+    public bool HasFix { get; } = true;
+    public string? ManifestFilename { get; }
+    public string? FixFilename { get; } = e.FileName;
+    public string DateLabel { get; } = "";
 
-    /// <summary>In-flight queue items for this fix's two slots. The buttons and their progress bars bind
-    /// straight through, so the shared queue stays the only owner of download state.</summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanDownloadManifest))]
-    private DownloadItem? _manifestItem;
-
+    /// <summary>In-flight queue item for this fix. The button and progress bar bind straight through.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanDownloadFix))]
     private DownloadItem? _fixItem;
 
+    // Kept for XAML compat (Manifest button binds to these, HasManifest=false hides it).
+    [ObservableProperty] private DownloadItem? _manifestItem;
+    public bool CanDownloadManifest => false;
+
     /// <summary>
-    /// Whether the game is installed on disk. Only the FIX slot cares: it extracts a zip into the game
-    /// folder, so with no folder there is nothing to apply. The MANIFEST slot installs a lua and works
-    /// whether or not the game is installed.
+    /// Whether the game folder is known on disk. The Fix button stays enabled even when false:
+    /// clicking it opens the folder picker popup to locate the game.
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanDownloadFix), nameof(FixHint))]
-
     private bool _gameInstalled;
 
-    /// <summary>True when the fix has been applied (its revert record exists on disk). Drives the Revert button.</summary>
+    /// <summary>True when the fix has been applied (its revert record exists on disk). Drives Revert.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasApplied), nameof(CanDownloadFix), nameof(FixHint))]
     private bool _isApplied;
 
     public bool HasApplied => IsApplied;
 
-    public bool CanDownloadManifest => HasManifest && ManifestItem?.IsActive != true;
-    public bool CanDownloadFix => HasFix && GameInstalled && !IsApplied && FixItem?.IsActive != true;
+    public bool CanDownloadFix => HasFix && !IsApplied && FixItem?.IsActive != true;
 
-    /// <summary>Why the Fix button is greyed out, or null when it isn't. A null ToolTip shows nothing,
-    /// so this doubles as the "should there be a tooltip at all" test.</summary>
+    /// <summary>Tooltip hint. Shows install hint when folder unknown, even though button stays clickable.</summary>
     public string? FixHint =>
         IsApplied ? Resources.Strings.Fixes_Applied_Hint
         : GameInstalled ? null
         : Resources.Strings.Fixes_NotInstalled_Hint;
-
-    private static string FormatDate(string? iso) =>
-        DateTimeOffset.TryParse(iso, out var d) ? d.UtcDateTime.ToString("d MMM yyyy") : "";
 }
 
 /// <summary>
-/// "Fixes" page: browse games with Denuvo fixes (grid + search + tag filter), open a game to see its
-/// fixes, and download a fix's manifest (force-locked lua install) or fix zip (extract into the game
-/// folder if installed). Downloads are auth-gated and count toward the 25/day limit (server-side).
+/// "Fixes" page: browse games with online fixes from thecloudyy/OnlineFixes (grid + search),
+/// open a game to see its fix zips, and download a fix zip (extract into the game folder,
+/// auto-detected or user-picked via popup). No lua.tools APIs are used for fixes.
 /// </summary>
 public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
 {
-    private readonly ElementApiClient api;
+    private readonly OnlineFixesService online;
     private readonly CoverCache covers;
     private readonly ToastService toast;
     private readonly SettingsService settings;
@@ -118,13 +123,16 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     private readonly ManifestJobFactory jobs;
     private readonly SteamLibraryService library;
     private readonly SteamService steam;
+    private readonly AppliedFixIndexService fixIndex;
+    private readonly LuaInstaller installer;
 
     public FixesViewModel(
-        ElementApiClient api, CoverCache covers, ToastService toast,
+        OnlineFixesService online, CoverCache covers, ToastService toast,
         SettingsService settings, DownloadQueue queue, ManifestJobFactory jobs,
-        SteamLibraryService library, SteamService steam)
+        SteamLibraryService library, SteamService steam, AppliedFixIndexService fixIndex,
+        LuaInstaller installer)
     {
-        this.api = api;
+        this.online = online;
         this.covers = covers;
         this.toast = toast;
         this.settings = settings;
@@ -132,6 +140,8 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
         this.jobs = jobs;
         this.library = library;
         this.steam = steam;
+        this.fixIndex = fixIndex;
+        this.installer = installer;
         InitPageSize(settings.FixesPageSize);
     }
 
@@ -140,8 +150,6 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
 
     public ObservableCollection<TagPillVm> Tags { get; } = [];
 
-    // IsLoading, EmptyMessage and the IsEmpty gating are inherited from PagedListViewModel<FixGameCardVm>.
-    // Page size persists via SavePageSizeSetting below.
     protected override void SavePageSizeSetting(int size) => settings.FixesPageSize = size;
 
     /// <summary>Warm the cover images for just the freshly-shown page (idempotent, off-UI).</summary>
@@ -153,10 +161,9 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     [ObservableProperty] private string _searchText = "";
     partial void OnSearchTextChanged(string value) => ApplyFilter();
 
-    [ObservableProperty] private string? _selectedTagId; // null = "All"
+    [ObservableProperty] private string? _selectedTagId;
 
-    // Appids with a lua in Steam's config/stplug-in ("my games"), so the page can filter the fix
-    // listing down to games the user actually owns. Empty when Steam isn't set up / no luas installed.
+    // Appids with a known install folder (Steam auto-detect + manual popup picks).
     private HashSet<long> _installedAppIds = [];
 
     /// <summary>True once the listing has been fetched (set at the end of LoadAsync).</summary>
@@ -164,23 +171,14 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     [NotifyPropertyChangedFor(nameof(CanFilter))]
     private bool _loaded;
 
-    /// <summary>Gates the filter pills ("my games" + tags) behind a finished, non-empty listing.</summary>
+    /// <summary>Gates the filter pills ("my games") behind a finished, non-empty listing.</summary>
     public bool CanFilter => Loaded && _allGames.Count > 0;
 
-    /// <summary>Only show fix games the user has added (a lua in stplug-in). Mirrors Manage's "my games".</summary>
+    /// <summary>Only show fix games installed on disk (auto-detected or manually picked).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MyGamesHint))]
     private bool _myGamesOnly;
 
-    /// <summary>
-    /// How many of the user's added games actually appear in the fix listing.
-    /// </summary>
-    /// <remarks>
-    /// The count must be the INTERSECTION, not <c>_installedAppIds.Count</c>. The string reads "{0} of
-    /// your games have fixes", but the raw count is every game with a lua added � so a library with 243
-    /// added games advertised 243 fixes while the filtered grid showed a dozen. This mirrors exactly what
-    /// <c>ApplyFilter</c> puts on screen when My games is on.
-    /// </remarks>
     public string MyGamesHint
     {
         get
@@ -197,11 +195,84 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     {
         if (value)
         {
-            SelectedTagId = null; // one filter at a time � turning "my games" on drops any tag
+            SelectedTagId = null;
             foreach (var pill in Tags) pill.IsSelected = false;
+            if (AppliedOnly) AppliedOnly = false;
         }
         ApplyFilter();
     }
+
+    /// <summary>Only show games with at least one applied fix (revertable).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AppliedHint))]
+    private bool _appliedOnly;
+
+    /// <summary>Appids with a revert record on disk (from the applied-fix index).</summary>
+    private HashSet<long> _appliedAppIds = [];
+
+    public string AppliedHint
+    {
+        get
+        {
+            if (_appliedAppIds.Count == 0) return Resources.Strings.Fixes_Applied_Empty;
+            return string.Format(Resources.Strings.Fixes_Applied_Count, _appliedAppIds.Count);
+        }
+    }
+
+    partial void OnAppliedOnlyChanged(bool value)
+    {
+        if (value)
+        {
+            SelectedTagId = null;
+            foreach (var pill in Tags) pill.IsSelected = false;
+            if (MyGamesOnly) MyGamesOnly = false;
+            _ = RefreshAppliedSetAsync();
+        }
+        ApplyFilter();
+    }
+
+    /// <summary>Reload applied appids from the index and mark cards. Records are confirmed on read.</summary>
+    public async Task RefreshAppliedSetAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var entries = await fixIndex.ListAsync(ct);
+            var indexed = new HashSet<long>(entries.Select(e => e.AppId));
+            // Disk confirmation OFF the UI thread: ~1200 GetInstallDir probes (VDF + ACF reads each)
+            // would otherwise jank the page for seconds. Cards are updated back on the UI thread.
+            var confirmed = await Task.Run(() =>
+            {
+                var set = new HashSet<long>(indexed);
+                foreach (var g in _allGames)
+                {
+                    if (ct.IsCancellationRequested) break;
+                    if (!long.TryParse(g.AppId, out long id) || set.Contains(id)) continue;
+                    try
+                    {
+                        string? dir = library.GetInstallDir(id);
+                        string? fixDir = dir is not null
+                            ? Path.Combine(dir, ManifestJobFactory.FixRecordDir)
+                            : null;
+                        if (fixDir is not null && Directory.Exists(fixDir)
+                            && Directory.GetFiles(fixDir, "*.json").Length > 0)
+                            set.Add(id);
+                    }
+                    catch { }
+                }
+                return set;
+            }, ct);
+            _appliedAppIds = confirmed;
+            foreach (var g in _allGames)
+                if (long.TryParse(g.AppId, out long id))
+                    g.HasAppliedFix = confirmed.Contains(id);
+            OnPropertyChanged(nameof(AppliedHint));
+            ApplyFilter();
+        }
+        catch { }
+    }
+
+    /// <summary>Set by App: navigate to Add and load this appid (the "Add game" button).</summary>
+    public Action<long>? NavigateToAdd { get; set; }
 
     // -- Detail flyout -----------------------------------------------
     [ObservableProperty]
@@ -209,10 +280,17 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     private FixGameCardVm? _selectedGame;
 
     public bool IsDetailOpen => SelectedGame is not null;
+
+    /// <summary>
+    /// "Add game" button visibility: hidden when the game's lua is already in the library
+    /// (same rule as Manage — a lua in Steam's config/stplug-in).
+    /// </summary>
+    [ObservableProperty] private bool _showAddGame;
+
     public ObservableCollection<FixItemVm> Fixes { get; } = [];
     [ObservableProperty] private bool _isLoadingFixes;
 
-    // Per-game tag filter (only meaningful when this game's fixes span multiple tags).
+    // Per-game tag filter kept for XAML compat (OnlineFixes has no tags, stays empty).
     private List<FixItemVm> _allFixes = [];
     public ObservableCollection<TagPillVm> FixTags { get; } = [];
     [ObservableProperty]
@@ -220,29 +298,21 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     private string? _selectedFixTagId;
     public bool HasFixTags => FixTags.Count > 0;
 
-    // Downloads are owned by the shared DownloadQueue; per-fix progress lives on FixItemVm. The page no
-    // longer has an IsBusy gate, so several fixes can be queued without waiting for each other.
-
     // -- Load ---------------------------------------------------------
 
-    /// <param name="force">True to re-fetch even if already loaded (the Refresh button); otherwise the
-    /// listing loads once per session.</param>
+    /// <param name="force">True to re-fetch even if already loaded (the Refresh button).</param>
     public async Task LoadAsync(bool force = false)
     {
-        if (!force && _allGames.Count > 0) return; // load once per session
+        if (!force && _allGames.Count > 0) return;
+        if (force) online.InvalidateCache();
         IsLoading = true;
         try
         {
-            var data = await api.GetDenuvoListingsAsync();
-            if (data is null)
-            {
-                EmptyMessage = Resources.Strings.Fixes_Err_Load;
-                return;
-            }
-
-            _allGames = data.Games.Select(g => new FixGameCardVm(g)).ToList();
+            var games = await online.GetGamesAsync();
+            _allGames = games.Select(g => new FixGameCardVm(g)).ToList();
             Tags.Clear();
-            foreach (var t in data.Tags) Tags.Add(new TagPillVm(t));
+            RefreshInstalledSet();
+            await RefreshAppliedSetAsync();
             ApplyFilter();
             if (_allGames.Count == 0) EmptyMessage = Resources.Strings.Fixes_Empty_None;
         }
@@ -253,16 +323,35 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
         finally
         {
             IsLoading = false;
-            Loaded = true; // gates the filter pills: they appear only once the listing settled
+            Loaded = true;
         }
+    }
+
+    private void RefreshInstalledSet()
+    {
+        try
+        {
+            var set = new HashSet<long>(library.EnumerateInstalled().Select(g => g.AppId));
+            foreach (var (id, _) in settings.GetManualInstallDirs()) set.Add(id);
+            // A manual pick counts even when the game has no appmanifest.
+            foreach (var g in _allGames)
+            {
+                if (long.TryParse(g.AppId, out long id) && library.GetInstallDir(id) is not null)
+                    set.Add(id);
+            }
+            _installedAppIds = set;
+            OnPropertyChanged(nameof(MyGamesHint));
+        }
+        catch { _installedAppIds = []; }
     }
 
     [RelayCommand]
     private Task Refresh() => RefreshWithCooldownAsync(async () =>
     {
-        if (SearchText.Length > 0) SearchText = ""; // reset filter ? full list visible
-        if (SelectedTagId is not null) SelectTag(SelectedTagId); // clear active tag (toggles off)
-        if (MyGamesOnly) MyGamesOnly = false; // ditto for the "my games" filter
+        if (SearchText.Length > 0) SearchText = "";
+        if (SelectedTagId is not null) SelectTag(SelectedTagId);
+        if (MyGamesOnly) MyGamesOnly = false;
+        if (AppliedOnly) AppliedOnly = false;
         await LoadAsync(force: true);
         toast.Show(Resources.Strings.Fixes_Toast_Refreshed_Title,
             string.Format(Resources.Strings.Fixes_Toast_Refreshed_Body, _allGames.Count));
@@ -271,8 +360,9 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     [RelayCommand]
     private void SelectTag(string? tagId)
     {
-        SelectedTagId = SelectedTagId == tagId ? null : tagId; // toggle off when re-clicked
-        if (MyGamesOnly) MyGamesOnly = false; // one filter at a time � picking a tag drops "my games"
+        SelectedTagId = SelectedTagId == tagId ? null : tagId;
+        if (MyGamesOnly) MyGamesOnly = false;
+        if (AppliedOnly) AppliedOnly = false;
         foreach (var pill in Tags) pill.IsSelected = pill.Id == SelectedTagId;
         ApplyFilter();
     }
@@ -283,18 +373,27 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
         IEnumerable<FixGameCardVm> shown = _allGames;
         if (SelectedTagId is { } tag) shown = shown.Where(g => g.TagIds.Contains(tag));
         if (MyGamesOnly) shown = shown.Where(g => long.TryParse(g.AppId, out long id) && _installedAppIds.Contains(id));
+        if (AppliedOnly) shown = shown.Where(g => g.HasAppliedFix
+            || (long.TryParse(g.AppId, out long id) && _appliedAppIds.Contains(id)));
         if (q.Length > 0) shown = shown.Where(g => g.Matches(q));
 
-        // Hand the filtered list to the base: it slices the visible page and (via OnPageSliced) warms
-        // that page's covers.
-        SetFiltered(shown);
+        var list = shown.ToList();
+        if (AppliedOnly && list.Count == 0)
+            EmptyMessage = Resources.Strings.Fixes_Applied_Empty;
+        else if (_allGames.Count == 0)
+            EmptyMessage = Resources.Strings.Fixes_Empty_None;
+        else if (list.Count == 0)
+            EmptyMessage = Resources.Strings.Manage_Empty_NoMatch;
+        else
+            EmptyMessage = "";
+
+        SetFiltered(list);
     }
 
     // -- Detail flyout -----------------------------------------------
 
     /// <summary>
-    /// Open the detail flyout for a specific game by its Steam AppId. Loads the listing if needed,
-    /// finds the game card, and opens its fix detail (the flyout makes its own per-appid API call).
+    /// Open the detail flyout for a specific game by its Steam AppId.
     /// Used by the element://fix/ protocol handler.
     /// </summary>
     public async Task OpenForAppIdAsync(long appId)
@@ -307,6 +406,8 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
 
         SearchText = "";
         SelectedTagId = null;
+        if (MyGamesOnly) MyGamesOnly = false;
+        if (AppliedOnly) AppliedOnly = false;
         ApplyFilter();
 
         await OpenGame(game);
@@ -319,15 +420,7 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
             toast.Show(Resources.Strings.Common_CopyAppId, Resources.Strings.Err_ClipboardBusy, error: true);
     }
 
-    /// <summary>
-    /// Open the game's Steam install folder � where <c>ApplyDenuvoFix</c> extracts a fix to.
-    /// </summary>
-    /// <remarks>
-    /// Resolved on click, not bound to a property: <c>GetInstallDir</c> walks libraryfolders.vdf and the
-    /// appmanifest files, which is far too much work to repeat for every card in a grid on every render.
-    /// The cost of that is the action being offered for games that aren't installed, so it reports the
-    /// same "game not found" toast the fix flow already uses rather than failing silently.
-    /// </remarks>
+    /// <summary>Open the game's install folder (auto or manually picked).</summary>
     [RelayCommand]
     private void ShowInFolder(FixGameCardVm game)
     {
@@ -342,7 +435,9 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     private async Task OpenGame(FixGameCardVm game)
     {
         SelectedGame = game;
-        _ = game.EnsureCoverAsync(covers); // ensure the flyout header image is cached too
+        try { ShowAddGame = installer.ReadInstalledLua(game.AppIdLong) is null; }
+        catch { ShowAddGame = true; }
+        _ = game.EnsureCoverAsync(covers);
         Fixes.Clear();
         _allFixes = [];
         FixTags.Clear();
@@ -350,22 +445,18 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
         IsLoadingFixes = true;
         try
         {
-            var data = await api.GetDenuvoFixesAsync(game.AppId);
-            if (data is not null)
+            var entries = await online.GetFixesAsync(game.AppIdLong);
+            _allFixes = entries.Select(e => new FixItemVm(e)).ToList();
+            // One probe for the whole game: GetInstallDir walks VDFs/ACFs per call.
+            bool installed = library.GetInstallDir(game.AppIdLong) is not null;
+            foreach (var f in _allFixes)
             {
-                _allFixes = data.Fixes.Select(f => new FixItemVm(f)).ToList();
-
-                // Build the per-game filter pills from the distinct tags across this game's fixes —
-                // but only when there's more than one (a single tag is no filter).
-                var distinct = _allFixes.SelectMany(f => f.Tags)
-                    .GroupBy(t => t.Id).Select(g => g.First())
-                    .OrderBy(t => t.Name).ToList();
-                if (distinct.Count > 1)
-                    foreach (var t in distinct) FixTags.Add(new TagPillVm(t));
-
-                OnPropertyChanged(nameof(HasFixTags));
-                ApplyFixFilter();
+                f.GameInstalled = installed;
+                try { f.IsApplied = jobs.IsFixApplied(game.AppIdLong, f.Id); } catch { }
             }
+            game.HasAppliedFix = _allFixes.Any(f => f.IsApplied);
+            if (game.HasAppliedFix) { _appliedAppIds.Add(game.AppIdLong); OnPropertyChanged(nameof(AppliedHint)); }
+            ApplyFixFilter();
         }
         catch { /* leave empty. Flyout shows "no fixes" */ }
         finally { IsLoadingFixes = false; }
@@ -382,21 +473,60 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     private void ApplyFixFilter()
     {
         IEnumerable<FixItemVm> shown = _allFixes;
-        if (SelectedFixTagId is { } tag) shown = shown.Where(f => f.Tags.Any(t => t.Id == tag));
+        if (SelectedFixTagId is { } tag) shown = shown.Where(f => f.Tags.Contains(tag));
         Fixes.Clear();
         foreach (var f in shown) Fixes.Add(f);
     }
 
+    /// <summary>"Add game": jump to the Add tab with this game loaded (Fetch + download a source).</summary>
     [RelayCommand]
-    private void CloseDetail() => SelectedGame = null;
+    private void AddGame()
+    {
+        if (SelectedGame is not { } game) return;
+        if (!long.TryParse(game.AppId, out long appId)) return;
+        NavigateToAdd?.Invoke(appId);
+    }
+
+    [RelayCommand]
+    private void CloseDetail()
+    {
+        // Sync this game's badge from disk before closing: apply/revert handlers already do,
+        // but this covers records changed behind our back (manual delete, another copy of the app).
+        if (SelectedGame is { } closing && long.TryParse(closing.AppId, out long closingId))
+        {
+            try
+            {
+                string? dir = library.GetInstallDir(closingId);
+                string? fixDir = dir is not null
+                    ? Path.Combine(dir, ManifestJobFactory.FixRecordDir)
+                    : null;
+                bool applied = fixDir is not null && Directory.Exists(fixDir)
+                    && Directory.GetFiles(fixDir, "*.json").Length > 0;
+                closing.HasAppliedFix = applied;
+                if (applied) _appliedAppIds.Add(closingId);
+                else _appliedAppIds.Remove(closingId);
+                OnPropertyChanged(nameof(AppliedHint));
+            }
+            catch { }
+        }
+        SelectedGame = null;
+        ShowAddGame = false;
+        ApplyFilter();
+    }
 
     // -- Downloads ----------------------------------------------------
 
     [RelayCommand]
-    private Task DownloadManifest(FixItemVm fix) => RunDownload(fix, "manifest");
+    private Task DownloadManifest(FixItemVm fix)
+    {
+        // Manifest slot removed: OnlineFixes ships fix zips only, no lua.tools.
+        toast.Show(Resources.Strings.Fixes_Toast_DownloadFailed,
+            Resources.Strings.Fixes_Empty_None, error: true);
+        return Task.CompletedTask;
+    }
 
     [RelayCommand]
-    private Task DownloadFix(FixItemVm fix) => RunDownload(fix, "fix");
+    private Task DownloadFix(FixItemVm fix) => RunDownload(fix);
 
     /// <summary>Confirm, then revert an applied fix back to its original files.</summary>
     [RelayCommand]
@@ -426,10 +556,37 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
         if (!long.TryParse(game.AppId, out long appId)) return;
 
         var result = await Task.Run(() => jobs.RevertDenuvoFix(appId, fix.Id, game.Name));
+        if (!result.Ok) return;
 
-        // RevertDenuvoFix owns every revert toast (done / partial / conflict / not-found / no-record).
-        // Showing another one here meant a failed revert fired two toasts for one action.
-        if (result.Ok) fix.IsApplied = false;
+        fix.IsApplied = false;
+        // Recompute from disk, never from stale flags: the record file is the truth.
+        // A failed cleanup keeps the record (and the method reports failure), so a success
+        // here means THIS fix's record is gone — but sibling fixes may still hold records.
+        bool anyLeft = false;
+        try
+        {
+            foreach (var f in _allFixes)
+            {
+                if (f == fix) continue;
+                try { f.IsApplied = jobs.IsFixApplied(appId, f.Id); }
+                catch { f.IsApplied = false; }
+                if (f.IsApplied) anyLeft = true;
+            }
+
+            string? dir = library.GetInstallDir(appId);
+            if (dir is not null)
+            {
+                string fixDir = Path.Combine(dir, ManifestJobFactory.FixRecordDir);
+                if (Directory.Exists(fixDir) && Directory.GetFiles(fixDir, "*.json").Length > 0)
+                    anyLeft = true;
+            }
+        }
+        catch { }
+        game.HasAppliedFix = anyLeft;
+        if (anyLeft) _appliedAppIds.Add(appId);
+        else _appliedAppIds.Remove(appId);
+        OnPropertyChanged(nameof(AppliedHint));
+        ApplyFilter();
     }
 
     private (FixItemVm Fix, FixGameCardVm Game)? _pendingRevert;
@@ -438,47 +595,47 @@ public partial class FixesViewModel : PagedListViewModel<FixGameCardVm>
     [ObservableProperty] private string _confirmRevertBody = "";
 
     /// <summary>
-    /// Queue one slot of a fix. The download, install and result toast all happen in the shared queue,
-    /// so this returns as soon as the item is enqueued.
+    /// Queue a fix: auto-find the install folder, else popup for the user to pick it.
+    /// Download + install run in the shared queue; this returns once enqueued.
     /// </summary>
-    private async Task RunDownload(FixItemVm fix, string slot)
+    private async Task RunDownload(FixItemVm fix)
     {
         if (SelectedGame is not { } game) return;
         if (!long.TryParse(game.AppId, out long appId)) return;
 
-        // The Fix button is disabled for uninstalled games, but the flyout's snapshot can be stale by
-        // now (and nothing stops a programmatic caller). Cheap local check, so do it before queueing
-        // rather than after paying for a download.
-        if (slot == "fix" && library.GetInstallDir(appId) is null)
+        // Auto-find first; popup only when missing. Persisted for next time.
+        string? dir = library.GetInstallDir(appId)
+            ?? library.ResolveInstallDirWithPrompt(appId, game.Name);
+        if (dir is null || !Directory.Exists(dir))
         {
-            toast.Show(Resources.Strings.Fixes_Toast_GameNotFound,
-                string.Format(Resources.Strings.Fixes_Toast_GameNotFound_Body, game.Name), error: true);
+            toast.Show(Resources.Strings.Fixes_Toast_FolderCancelled,
+                Resources.Strings.Fixes_Toast_FolderCancelled_Body, error: true);
             return;
         }
 
-        string fallback = slot == "manifest"
-            ? fix.ManifestFilename ?? $"{game.AppId}.zip"
-            : fix.FixFilename ?? $"{game.AppId}_fix.zip";
+        fix.GameInstalled = true;
+        RefreshInstalledSet();
+        ApplyFilter();
 
-        var job = jobs.CreateDenuvoJob(fix.Id, slot, fallback, appId, game.Name, fix.Title,
+        var job = jobs.CreateOnlineFixJob(fix.Entry, appId, game.Name,
             onFinished: (item, result) =>
             {
-                // The factory already toasts success and install failures. A download that never got
-                // that far (network, auth, daily limit) still needs to say something.
                 if (result is null && item.Status == DownloadStatus.Failed)
                 {
                     toast.Show(Resources.Strings.Fixes_Toast_DownloadFailed,
                         item.Message ?? Resources.Strings.Fixes_Toast_DownloadFailed_Body, error: true);
                     return;
                 }
-
-                // A successfully applied fix unlocks the Revert button right away, without closing and
-                // reopening the flyout.
-                if (slot == "fix" && result?.Ok == true) fix.IsApplied = true;
+                if (result?.Ok == true)
+                {
+                    fix.IsApplied = true;
+                    game.HasAppliedFix = true;
+                    _appliedAppIds.Add(appId);
+                    OnPropertyChanged(nameof(AppliedHint));
+                    ApplyFilter();
+                }
             });
 
-        var item = queue.Enqueue(job);
-        if (slot == "manifest") fix.ManifestItem = item;
-        else fix.FixItem = item;
+        fix.FixItem = queue.Enqueue(job);
     }
 }

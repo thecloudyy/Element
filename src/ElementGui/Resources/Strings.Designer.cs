@@ -55,6 +55,8 @@ public static class Strings
     public static string Settings_ResetToAuto => Get(nameof(Settings_ResetToAuto));
     public static string Settings_AutoUpdateApps => Get(nameof(Settings_AutoUpdateApps));
     public static string Settings_AutoUpdateApps_Hint => Get(nameof(Settings_AutoUpdateApps_Hint));
+    public static string Settings_AutoDownloadManifests => Get(nameof(Settings_AutoDownloadManifests));
+    public static string Settings_AutoDownloadManifests_Hint => Get(nameof(Settings_AutoDownloadManifests_Hint));
     public static string Settings_BuiltInButtonMode => Get(nameof(Settings_BuiltInButtonMode));
     public static string Settings_BuiltInButtonMode_Hint => Get(nameof(Settings_BuiltInButtonMode_Hint));
     public static string Settings_DonateKeys => Get(nameof(Settings_DonateKeys));
@@ -100,7 +102,27 @@ public static class Strings
     public static string Cloud_Section_General => Get(nameof(Cloud_Section_General));
     public static string Cloud_Section_Provider => Get(nameof(Cloud_Section_Provider));
     public static string Cloud_Section_Status => Get(nameof(Cloud_Section_Status));
+    public static string Cloud_Section_MetadataSync => Get(nameof(Cloud_Section_MetadataSync));
+    public static string Cloud_MetadataSync_Hint => Get(nameof(Cloud_MetadataSync_Hint));
+    public static string Cloud_AchievementsSync => Get(nameof(Cloud_AchievementsSync));
+    public static string Cloud_AchievementsSync_Hint => Get(nameof(Cloud_AchievementsSync_Hint));
+    public static string Cloud_PlaytimeSync => Get(nameof(Cloud_PlaytimeSync));
+    public static string Cloud_PlaytimeSync_Hint => Get(nameof(Cloud_PlaytimeSync_Hint));
+    public static string Cloud_LuaSync => Get(nameof(Cloud_LuaSync));
+    public static string Cloud_LuaSync_Hint => Get(nameof(Cloud_LuaSync_Hint));
+    public static string Cloud_SchemaFetch => Get(nameof(Cloud_SchemaFetch));
+    public static string Cloud_SchemaFetch_Hint => Get(nameof(Cloud_SchemaFetch_Hint));
     public static string Cloud_Section_LocalFolder => Get(nameof(Cloud_Section_LocalFolder));
+    public static string Cloud_EnableRedirection => Get(nameof(Cloud_EnableRedirection));
+    public static string Cloud_EnableRedirection_Hint => Get(nameof(Cloud_EnableRedirection_Hint));
+    public static string Cloud_SyncEngine => Get(nameof(Cloud_SyncEngine));
+    public static string Cloud_SyncActive => Get(nameof(Cloud_SyncActive));
+    public static string Cloud_SyncPaused => Get(nameof(Cloud_SyncPaused));
+    public static string Cloud_InstalledLabel => Get(nameof(Cloud_InstalledLabel));
+    public static string Cloud_LatestLabel => Get(nameof(Cloud_LatestLabel));
+    public static string Cloud_ReinstallEngine => Get(nameof(Cloud_ReinstallEngine));
+    public static string Cloud_UninstallEngine => Get(nameof(Cloud_UninstallEngine));
+    public static string Cloud_OpenSteamFolder => Get(nameof(Cloud_OpenSteamFolder));
     public static string Cloud_DllStatus => Get(nameof(Cloud_DllStatus));
     public static string Cloud_Install => Get(nameof(Cloud_Install));
     public static string Cloud_Uninstall => Get(nameof(Cloud_Uninstall));
@@ -228,6 +250,10 @@ public static class Strings
     public static string Manage_Action_CopyAppId => Get(nameof(Manage_Action_CopyAppId));
     public static string Manage_Action_RemoveDrm => Get(nameof(Manage_Action_RemoveDrm));
     public static string Manage_Action_ManageBuild => Get(nameof(Manage_Action_ManageBuild));
+    public static string Manage_DownloadManifests => Get(nameof(Manage_DownloadManifests));
+    public static string Manage_Toast_Manifests_Title => Get(nameof(Manage_Toast_Manifests_Title));
+    public static string Manage_Toast_Manifests_None => Get(nameof(Manage_Toast_Manifests_None));
+    public static string Manage_Toast_Manifests_Done => Get(nameof(Manage_Toast_Manifests_Done));
     public static string Manage_AboutHeader => Get(nameof(Manage_AboutHeader));
     public static string Manage_Info_Developer => Get(nameof(Manage_Info_Developer));
     public static string Manage_Info_Publisher => Get(nameof(Manage_Info_Publisher));
@@ -348,6 +374,8 @@ public static class Strings
     public static string Add_Generating => Get(nameof(Add_Generating));
     public static string Add_DlcHint => Get(nameof(Add_DlcHint));
     public static string Add_AlreadyHaveFiles => Get(nameof(Add_AlreadyHaveFiles));
+    public static string Add_FixAvailable => Get(nameof(Add_FixAvailable));
+    public static string Add_CheckingFix => Get(nameof(Add_CheckingFix));
     public static string Add_Err_BaseGame => Get(nameof(Add_Err_BaseGame));
     public static string Add_Err_Generic => Get(nameof(Add_Err_Generic));
     public static string Add_Err_Download => Get(nameof(Add_Err_Download));
@@ -540,6 +568,18 @@ public static class Strings
     public static string Downloads_Err_Interrupted => Get(nameof(Downloads_Err_Interrupted));
     public static string Downloads_Kind_Dlc => Get(nameof(Downloads_Kind_Dlc));
     public static string Fixes_NotInstalled_Hint => Get(nameof(Fixes_NotInstalled_Hint));
+    public static string Fixes_Select_Game_Folder_Title => Get(nameof(Fixes_Select_Game_Folder_Title));
+    public static string Fixes_Select_Game_Folder_WarnTitle => Get(nameof(Fixes_Select_Game_Folder_WarnTitle));
+    public static string Fixes_Select_Game_Folder_WarnBody => Get(nameof(Fixes_Select_Game_Folder_WarnBody));
+    public static string Fixes_Toast_FolderCancelled => Get(nameof(Fixes_Toast_FolderCancelled));
+    public static string Fixes_Toast_FolderCancelled_Body => Get(nameof(Fixes_Toast_FolderCancelled_Body));
+    public static string Fixes_Applied => Get(nameof(Fixes_Applied));
+    public static string Fixes_Applied_Count => Get(nameof(Fixes_Applied_Count));
+    public static string Fixes_Applied_Empty => Get(nameof(Fixes_Applied_Empty));
+    public static string Fixes_Applied_Badge => Get(nameof(Fixes_Applied_Badge));
+    public static string Fixes_AddGame => Get(nameof(Fixes_AddGame));
+    public static string Fixes_Revert_CleanupFailed => Get(nameof(Fixes_Revert_CleanupFailed));
+    public static string Fixes_Revert_CleanupFailed_Body => Get(nameof(Fixes_Revert_CleanupFailed_Body));
 
     // ── Depot downloading ──
     public static string Downloads_Status_Paused => Get(nameof(Downloads_Status_Paused));

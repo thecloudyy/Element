@@ -72,11 +72,6 @@
                             <ui:SymbolIcon Symbol="Games24" />
                         </ui:NavigationViewItem.Icon>
                     </ui:NavigationViewItem>
-                    <ui:NavigationViewItem Content="{x:Static res:Strings.Nav_Builds}" TargetPageType="{x:Type views:BuildsView}">
-                        <ui:NavigationViewItem.Icon>
-                            <ui:SymbolIcon Symbol="BranchFork24" />
-                        </ui:NavigationViewItem.Icon>
-                    </ui:NavigationViewItem>
                     <ui:NavigationViewItem Content="{x:Static res:Strings.Nav_Fixes}" TargetPageType="{x:Type views:FixesView}">
                         <ui:NavigationViewItem.Icon>
                             <ui:SymbolIcon Symbol="ShieldTask24" />
