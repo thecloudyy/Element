@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using Microsoft.Extensions.Logging;
 using SteamKit2;
@@ -23,6 +24,7 @@ public class ManifestDownloadService(
     private static readonly TimeSpan CodePacing = TimeSpan.FromSeconds(1.2);
 
     private static readonly HttpClient _codeHttp = new() { Timeout = TimeSpan.FromSeconds(20) };
+    private static readonly HttpClient _cdnHttp = new() { Timeout = TimeSpan.FromSeconds(90) };
     private static readonly SemaphoreSlim _codeGate = new(1, 1);
     private static DateTime _lastCodeAt = DateTime.MinValue;
     private static List<SteamKit2.CDN.Server>? _servers;
@@ -180,7 +182,23 @@ public class ManifestDownloadService(
         uint depotId, ulong manifestId, ulong code, byte[]? depotKey,
         string path, CancellationToken ct)
     {
-        var servers = await GetServersAsync(ct);
+        // LanCache first: plain HTTP, no Steam session or server discovery.
+        // Discovered content servers are the fallback.
+        var lanBytes = await TryDownloadFromLanCacheAsync(depotId, manifestId, code, ct);
+        if (lanBytes is not null)
+        {
+            await File.WriteAllBytesAsync(path, lanBytes, ct);
+            return true;
+        }
+
+        List<SteamKit2.CDN.Server> servers;
+        try
+        {
+            servers = await GetServersAsync(ct);
+        }
+        catch (OperationCanceledException) { throw; }
+        catch { servers = []; }
+
         foreach (var server in servers.Take(3))
         {
             ct.ThrowIfCancellationRequested();
@@ -200,6 +218,33 @@ public class ManifestDownloadService(
             catch { /* next server */ }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Raw LanCache fetch: the exact URL shape SteamKit itself builds
+    /// (<c>http://lancache.steamcontent.com/depot/{id}/manifest/{gid}/5/{code}</c>),
+    /// unzipped to the raw protobuf manifest bytes. Null on any failure.
+    /// </summary>
+    private static async Task<byte[]?> TryDownloadFromLanCacheAsync(
+        uint depotId, ulong manifestId, ulong code, CancellationToken ct)
+    {
+        try
+        {
+            var url = $"http://lancache.steamcontent.com/depot/{depotId}/manifest/{manifestId}/5/{code}";
+            using var res = await _cdnHttp.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+            if (!res.IsSuccessStatusCode) return null;
+            var bytes = await res.Content.ReadAsByteArrayAsync(ct);
+            if (bytes.Length == 0) return null;
+            using var ms = new MemoryStream(bytes, writable: false);
+            using var zip = new ZipArchive(ms, ZipArchiveMode.Read);
+            var entry = zip.Entries.FirstOrDefault();
+            if (entry == null) return null;
+            using var es = entry.Open();
+            using var outMs = new MemoryStream();
+            await es.CopyToAsync(outMs, ct);
+            return outMs.Length == 0 ? null : outMs.ToArray();
+        }
+        catch { return null; }
     }
 
     /// <summary>The depotcache path a manifest would live at, or null without a Steam folder.</summary>

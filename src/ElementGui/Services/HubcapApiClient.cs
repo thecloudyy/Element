@@ -106,6 +106,67 @@ public class HubcapApiClient()
         return staged;
     }
 
+    /// <summary>
+    /// Download the game manifest ZIP for an app (individual, per-app download).
+    /// Counts toward daily usage. Returns null when Hubcap has no manifest (404).
+    /// </summary>
+    public async Task<DownloadedFile?> DownloadManifestTempAsync(string appid, CancellationToken ct = default)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/manifest/{Uri.EscapeDataString(appid)}");
+        AddAuth(req);
+        var res = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        if (res.StatusCode == HttpStatusCode.NotFound)
+            return null;
+        if (res.StatusCode == HttpStatusCode.Unauthorized || res.StatusCode == HttpStatusCode.Forbidden)
+            throw new ApiException("Your Hubcap key is invalid or expired.", res.StatusCode);
+        if (res.StatusCode == (HttpStatusCode)429)
+            throw new ApiException("Your Hubcap daily limit has been reached.", res.StatusCode);
+        if (!res.IsSuccessStatusCode)
+        {
+            string? detail = await TryReadErrorAsync(res, ct);
+            throw new ApiException($"Hubcap download failed ({(int)res.StatusCode}{(detail is not null ? $" — {detail}" : "")})", res.StatusCode);
+        }
+
+        var staged = await HttpFileDownloader.SaveResponseAsync(res, $"{appid}_hubcap_manifest.zip", null, ct);
+        // Ensure .zip extension even if server sent a generic name.
+        if (!staged.FilePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+        {
+            string withExt = staged.FilePath + ".zip";
+            try { File.Move(staged.FilePath, withExt, overwrite: true); } catch { /* keep original */ }
+            if (File.Exists(withExt))
+                return new DownloadedFile(withExt, $"{appid}.zip");
+        }
+        return staged;
+    }
+
+    /// <summary>
+    /// Generate a single depot manifest (binary .manifest) via Hubcap, straight
+    /// from Steam. Counts toward generation limits. Writes the bytes to
+    /// <paramref name="destPath"/> and returns true. Returns false when Hubcap
+    /// has no manifest for this depot (404); throws on an invalid key or an
+    /// exhausted quota so the caller can surface it.
+    /// </summary>
+    public async Task<bool> GenerateDepotManifestAsync(long depotId, string manifestId, string destPath, CancellationToken ct = default)
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get,
+            $"/api/v1/generate/manifest?depot_id={depotId}&manifest_id={Uri.EscapeDataString(manifestId)}");
+        AddAuth(req);
+        var res = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct);
+        if (res.StatusCode == HttpStatusCode.NotFound)
+            return false;
+        if (res.StatusCode == HttpStatusCode.Unauthorized || res.StatusCode == HttpStatusCode.Forbidden)
+            throw new ApiException("Your Hubcap key is invalid or expired.", res.StatusCode);
+        if (res.StatusCode == (HttpStatusCode)429)
+            throw new ApiException("Your Hubcap daily limit has been reached.", res.StatusCode);
+        if (!res.IsSuccessStatusCode)
+            return false;
+        var bytes = await res.Content.ReadAsByteArrayAsync(ct);
+        if (bytes.Length == 0)
+            return false;
+        await File.WriteAllBytesAsync(destPath, bytes, ct);
+        return true;
+    }
+
     public record HubcapUsage(int Used, int Limit);
 
     /// <summary>

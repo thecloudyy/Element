@@ -335,6 +335,19 @@ public partial class DepotDownloaderService(
     }
 
     /// <summary>
+    /// The depotcache path a single-depot manifest is written to (Hubcap
+    /// generate endpoint). Null without a Steam folder. Unlike
+    /// <see cref="ResolveManifestPath"/>, the file need not exist: this names
+    /// where the fetch lands. Writes always go to the real folder, which is
+    /// the only one Steam itself reads.
+    /// </summary>
+    public string? ManifestCachePath(long depotId, string manifestId)
+    {
+        if (steam.DepotCacheDir is not { } dir) return null;
+        return Path.Combine(dir, $"{depotId}_{manifestId}.manifest");
+    }
+
+    /// <summary>
     /// Delete a cached manifest that failed validation, so a re-fetch can actually replace it.
     /// </summary>
     /// <remarks>

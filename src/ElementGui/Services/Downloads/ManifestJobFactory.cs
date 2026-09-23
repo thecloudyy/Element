@@ -1,6 +1,9 @@
 ﻿using System.IO;
 using System.IO.Compression;
+using System.Net.Http;
+using System.Text.Json;
 using ElementGui.Models;
+using ElementGui.Services;
 
 namespace ElementGui.Services.Downloads;
 
@@ -25,17 +28,15 @@ public class ManifestJobFactory(
     SteamDepotInfo depotInfo,
     SteamAutoCrackService sac,
     AppliedFixIndexService fixIndex,
-    ManifestDownloadService manifestDl,
-    SettingsService settings,
     OnlineFixesService onlineFixes)
 {
     // ── Job builders ─────────────────────────────────────────────────
 
     /// <summary>A base-game lua from a named source, plus its manifests.
-    /// Sources are lua-only: the lua downloads from Hubcap (/lua) or Ryuu
-    /// (file_type=lua), then every manifest the lua pins is fetched via
-    /// ManifestDeX codes + Steam CDN into depotcache. Manifest zips are
-    /// never downloaded from anywhere.
+    /// The lua downloads from Hubcap (/lua) or Ryuu (file_type=lua); each source
+    /// then installs this app's own manifest bundle straight into depotcache
+    /// (Hubcap /api/v1/manifest/{app_id}, Ryuu file_type=manifest).
+    /// Never a bulk download, never Steam's job.
     /// </summary>
     public DownloadJob CreateManifestJob(
         long appId, string? gameName, string sourceName,
@@ -63,7 +64,7 @@ public class ManifestJobFactory(
                 }
                 return await api.DownloadAsync(appId.ToString(), "lua", null, progress, ct);
             },
-            (file, item, ct) => InstallLuaPlusManifestsAsync(file, appId, title, item, ct),
+            (file, item, ct) => InstallLuaPlusManifestsAsync(file, appId, title, item, ct, isHubcap),
             confirm,
             onFinished,
             onReveal);
@@ -425,9 +426,10 @@ public class ManifestJobFactory(
     }
 
     /// <summary>
+    /// <summary>
     /// The depotcache path for a depot's manifest when it's already on disk. Never returns null —
     /// it throws with a user-facing reason instead. No login, no fetch: manifests come from the
-    /// depotcache (button installs, pinned installs, or Steam's own copies).
+    /// Hubcap API or Element API. No Steam login needed.
     /// </summary>
     private async Task<string> EnsureManifestAsync(
         DownloadItem item, DepotSelection sel, byte[] depotKey, string step, CancellationToken ct)
@@ -442,18 +444,25 @@ public class ManifestJobFactory(
 
         OnUi(() => item.Detail = $"{step} · {Resources.Strings.Downloads_Depot_FetchingManifest}");
 
-        // Auto Download Manifest Files: ManifestDeX request code + Steam CDN,
-        // straight into depotcache. No Steam login needed.
-        if (settings.AutoDownloadManifests)
+        // Hubcap-only: single-depot manifest generated on demand, straight into
+        // depotcache under its content-addressed name. No ManifestDeX, no bulk fetch.
+        if (depotTool.ManifestCachePath(sel.DepotId, sel.ManifestId!) is { } path)
         {
-            var path = await manifestDl.EnsureManifestFileAsync(
-                sel.DepotId, sel.ManifestId!, depotKey,
-                status => OnUi(() => item.Detail = $"{step} · {status}"), ct);
-            if (path is not null)
-                return path;
+            try
+            {
+                OnUi(() => item.Detail = $"{step} · downloading manifest");
+                if (await hubcap.GenerateDepotManifestAsync(sel.DepotId, sel.ManifestId!, path, ct)
+                    && ManifestFile.Matches(path, sel.DepotId, sel.ManifestId!))
+                {
+                    OnUi(() => item.Detail = $"{step} · downloaded manifest");
+                    return path;
+                }
+            }
+            catch (ApiException) { throw; }
+            catch { /* fall through to the abort below */ }
         }
 
-        throw new DownloadAbortedException("Depot manifest downloads are no longer supported via API");
+        throw new DownloadAbortedException("Manifest not available via Hubcap API");
     }
 
     /// <summary>Marshal an observable-property write onto the dispatcher (this runs on a worker).</summary>
@@ -498,34 +507,18 @@ public class ManifestJobFactory(
     }
 
     /// <summary>
-    /// Install a downloaded lua, then fetch every manifest it pins
-    /// (ManifestDeX codes + Steam CDN) into depotcache. Temp file is deleted after use.
+    /// Install a downloaded lua, then fetch this app's manifests.
+    /// Each source installs its own manifest bundle for THIS app only (no bulk
+    /// fetch): Hubcap via /api/v1/manifest/{app_id}, Ryuu via
+    /// /api/download/{appid}?file_type=manifest. The zip lands straight in
+    /// depotcache, so the banner reads "Added {game}: lua + N manifest(s)".
     /// </summary>
     private async Task<JobResult> InstallLuaPlusManifestsAsync(
         DownloadedFile file, long appId, string gameName,
-        DownloadItem item, CancellationToken ct)
+        DownloadItem item, CancellationToken ct, bool isHubcap = false)
     {
         try
         {
-            // Pins must come from the downloaded bytes, not the installed copy:
-            // InstallLua may comment pins out (Auto Update Apps), and after that
-            // the gids would be unreadable as *active* pins.
-            var pins = new List<(long DepotId, string ManifestId, string? Key)>();
-            try
-            {
-                var contents = LuaFileParser.Parse(file.FilePath, appId);
-                if (contents is not null)
-                {
-                    foreach (var e in contents.Entries)
-                    {
-                        if (!string.IsNullOrEmpty(e.ManifestId))
-                            pins.Add((e.Id, e.ManifestId, e.Key));
-                    }
-                    pins = pins.Distinct().ToList();
-                }
-            }
-            catch { /* unparseable lua: install it, skip manifests */ }
-
             var luaRes = installer.InstallLua(file.FilePath, appId);
             if (luaRes.Error is not null || luaRes.AnyFailed || !luaRes.LuaInstalled)
             {
@@ -534,41 +527,45 @@ public class ManifestJobFactory(
             }
 
             int fetched = 0;
-            if (pins.Count > 0)
+            if (isHubcap)
             {
-                int done = 0;
-                var gate = new SemaphoreSlim(3);
+                OnUi(() => item.Detail = "Downloading manifest...");
                 try
                 {
-                    var tasks = pins.Select(async pin =>
+                    var zip = await hubcap.DownloadManifestTempAsync(appId.ToString(), ct);
+                    if (zip is not null)
                     {
-                        await gate.WaitAsync(ct);
                         try
                         {
-                            byte[]? key = null;
-                            try
-                            {
-                                if (!string.IsNullOrEmpty(pin.Key) && pin.Key.Length == 64)
-                                    key = Convert.FromHexString(pin.Key);
-                            }
-                            catch { key = null; }
-                            if (await manifestDl.EnsureManifestFileAsync(pin.DepotId, pin.ManifestId, key, null, ct) is not null)
-                                Interlocked.Increment(ref fetched);
+                            fetched = installer.InstallZip(zip.FilePath, appId).ManifestCount;
                         }
-                        catch { }
-                        finally
-                        {
-                            gate.Release();
-                            int n = Interlocked.Increment(ref done);
-                            OnUi(() => item.Detail = $"Fetching manifests {n}/{pins.Count}");
-                        }
-                    });
-                    await Task.WhenAll(tasks);
+                        finally { DeleteStaged(zip.FilePath); }
+                    }
                 }
-                finally
+                catch { /* no manifest: banner falls back to Steam-will-fetch */ }
+
+                if (fetched > 0)
+                    OnUi(() => item.Detail = "Downloaded manifest");
+            }
+            else
+            {
+                // Ryuu: manifest bundle zip for THIS app only
+                // (GET /api/download/{appid}?file_type=manifest), installed
+                // straight into depotcache — same banner as Hubcap.
+                OnUi(() => item.Detail = "Downloading manifest...");
+                try
                 {
-                    gate.Dispose();
+                    var zip = await api.DownloadAsync(appId.ToString(), "manifest", null, null, ct);
+                    try
+                    {
+                        fetched = installer.InstallZip(zip.FilePath, appId).ManifestCount;
+                    }
+                    finally { DeleteStaged(zip.FilePath); }
                 }
+                catch { /* no manifest: banner falls back to Steam-will-fetch */ }
+
+                if (fetched > 0)
+                    OnUi(() => item.Detail = "Downloaded manifest");
             }
 
             string message = fetched > 0

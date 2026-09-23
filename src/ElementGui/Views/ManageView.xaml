@@ -43,11 +43,6 @@
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
                 <ui:Button
-                    Margin="0,0,8,0"
-                    Command="{Binding DownloadAllManifestsCommand}"
-                    Content="{x:Static res:Strings.Manage_DownloadManifests}"
-                    Icon="{ui:SymbolIcon ArrowDownload24}" />
-                <ui:Button
                     Command="{Binding RefreshCommand}"
                     Content="{x:Static res:Strings.Manage_Refresh}"
                     Icon="{ui:SymbolIcon ArrowSync24}" />
